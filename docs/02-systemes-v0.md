@@ -9,7 +9,8 @@
 | Terme | Définition |
 |---|---|
 | **Pool** | L'ensemble des dés que possède le personnage. C'est sa fiche de perso. |
-| **Main** | Les dés tirés ce tour depuis le pool. |
+| **Main** | Les dés disponibles ce tour : les dés conservés du tour précédent, complétés par de nouveaux dés tirés du pool. |
+| **Conservation** | Le choix explicite de garder un dé sans le dépenser. Le dé garde sa face ; il n'est pas relancé. |
 | **Face** | Le symbole obtenu sur un dé tiré : Frappe, Garde, Élan, Éclat (joker). |
 | **Dépense** | L'acte de consommer un dé pour exécuter une action. Le moment où tout se déclenche. |
 | **Relique** | Un objet permanent de la run. Ne donne pas de stats : modifie le pool, les faces, le tirage, ou réagit à une dépense. |
@@ -31,6 +32,28 @@ Un seul type de dé, faces mixtes. Quatre faces possibles :
 | **Éclat** | Joker. Compte comme n'importe quelle face, et alimente les synergies. Absent du dé de départ : il s'obtient. |
 
 Dé de départ : 3 Frappe, 2 Garde, 1 Élan. Pool de départ : 6 dés identiques.
+
+### Structure d'un tour
+
+1. **Tirage** — la main est complétée à 3 depuis le pool. Les nouveaux dés sont lancés ; les
+   dés conservés au tour précédent gardent leur face.
+2. **Lecture** — les intentions ennemies sont affichées.
+3. **Choix** — on dépense les dés qu'on veut, dans l'ordre qu'on veut, et on désigne ceux
+   qu'on conserve (2 au plus). **Rien n'est résolu**, tout est modifiable.
+4. **Validation** — fin du choix.
+5. **Résolution** — les dépenses du joueur dans l'ordre choisi, puis les ennemis.
+6. **Défausse** — les dés dépensés et les dés non conservés retournent au pool. Ils seront
+   relancés lors d'un tirage ultérieur.
+
+**Pourquoi la résolution est différée sans rien coûter.** Comme aucun aléatoire n'intervient
+dans la résolution (I2), le résultat d'une dépense est entièrement prévisible avant de la
+faire. Résoudre après la validation ne prive donc le joueur d'aucune information : on gagne
+l'annulation libre pendant tout le tour, on ne perd rien. La contrepartie à surveiller est
+l'ordre des dépenses, qui compte pour les combos Écho et Suite : il fait partie du choix.
+
+**La conservation est un choix, pas une conséquence.** Conserver un dé, c'est renoncer à
+l'action de ce tour — donc encaisser un coup — pour préparer un combo au suivant. C'est la
+tension principale de la boucle de tour, et le plafond de 2 en est le curseur.
 
 **Un pas gratuit par tour.** Le déplacement d'une case ne coûte pas de dé, et n'est jamais
 indisponible. C'est ce qui garantit qu'aucun tirage ne peut bloquer le joueur — sans cette
@@ -70,7 +93,9 @@ qu'ajouter des dégâts est refusée par défaut.
 
 1. **Composition du pool** — ajoute, retire, transforme des dés.
 2. **Faces** — change ce que montre un dé, ou ce que fait une face.
-3. **Tirage** — change le nombre de dés tirés, le moment, le recyclage, permet de relancer.
+3. **Tirage** — change le nombre de dés tirés, le moment, le recyclage, la conservation, ou
+   permet de **relancer un dé individuellement**. C'est le levier des personnages tordeurs de
+   dés (D16), et celui qui pèse le plus sur la durée d'un tour : voir l'avertissement ci-dessous.
 4. **Déclenchement** — « quand tu dépenses un dé X, alors Y ». C'est le levier des
    synergies : c'est là que naissent les builds absurdes, et c'est aussi là que naissent
    les boucles infinies. `balance-simulator` surveille ce levier en priorité.
@@ -87,6 +112,24 @@ qu'ajouter des dégâts est refusée par défaut.
   sans défilement.
 - **I5 — Aucune stat cachée.** Tout ce qui influe sur le résultat est affichable en tapant
   dessus.
+
+## Les relances individuelles
+
+Reliques et personnages peuvent permettre de **relancer un dé précis**. C'est le levier le
+plus demandé et le plus dangereux du jeu, pour trois raisons cumulées :
+
+- **Il gonfle la durée du tour.** Le budget est de 8 secondes. Un personnage bâti sur la
+  relance peut le doubler, et faire passer la run de 12 à 20 minutes sans qu'aucune règle
+  n'ait changé. C'est la dérive que `balance-simulator` doit détecter en premier.
+- **Il crée de la paralysie d'analyse.** Relancer jusqu'à obtenir la bonne face transforme
+  une décision en optimisation mécanique.
+- **Il ouvre la porte aux boucles** dès qu'une relance peut en produire une autre (I3).
+
+Règles de garde, à respecter par toute relique ou personnage à relance :
+- Une relance est **plafonnée par tour**, jamais illimitée, et le plafond est visible.
+- Une relance est **un seul geste**, sans confirmation.
+- Une relance qui octroie une relance est interdite par défaut. Toute exception passe par
+  `game-designer` et est testée en simulation avant d'entrer dans le catalogue.
 
 ## Progression intra-run
 

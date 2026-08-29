@@ -21,11 +21,17 @@ il dit où on en est de la réflexion, pas seulement du code.
 | D9 | Réseau | 100 % hors ligne en v1 | Comptes, cloud save, classements | Aucune dépendance serveur tant que le jeu n'est pas bon |
 | D10 | Grille | 5×7, déplacement secondaire | Grille large où le déplacement est le levier principal | Une case doit faire 44 pt sous le pouce ; au-delà de 7 rangées on tape à côté |
 | D11 | Main et pool | 3 dés en main, pool de départ de 6, recyclage quand le pool est vide | Main variable, pool reconstitué à chaque combat | Le recyclage rend la composition du pool visible au joueur, ce qui est le cœur du pilier 1 |
-| D12 | Dés non dépensés | Reportés au tour suivant, plafond de 2 | Perdus, reportés sans limite | Crée une vraie décision de temporisation sans permettre d'accumuler jusqu'au tour parfait. Renforce mutuellement les combos (D17) |
+| D12 | Dés non dépensés | Conservation **choisie**, 2 au plus. Les autres retournent au pool et seront relancés | Report automatique, dés perdus, report sans limite | Un choix explicite ajoute une décision par tour au lieu d'une conséquence subie. Renforce mutuellement les combos |
 | D13 | Valeurs numériques | Aucune. Une action coûte un dé de la bonne face | Dés à valeurs qu'on additionne | Lisibilité sur petit écran. On pourra ajouter des valeurs si le combat manque de décisions ; l'inverse est très difficile à retirer |
 | D14 | Santé | Points de vie classiques | Dégradation du pool à chaque coup reçu | Trop punitif comme règle par défaut ; la dégradation du pool est réservée aux boss et aux hautes difficultés |
 | D15 | Difficulté cible | 3 à 6 runs avant la première victoire | Victoire à la première run, ou 20 défaites préalables | Territoire *Slay the Spire*. Cible mesurable : ~25-30 % de victoires en découverte, ~55-60 % en maîtrise |
 | D16 | Identité des personnages | Chacun tord les dés à sa manière | Archétypes de combat (le rapide, le lourd, le contrôleur) | Bien plus riche avec ce système. Contrepartie assumée : le personnage de départ doit rester simple, il enseigne les dés |
+| D17 | Modèle du dé | Un seul type, faces mixtes : Frappe ×3, Garde ×2, Élan ×1. Éclat obtenu, jamais de départ | Dés de mouvement et dés d'action séparés | Des pools séparés supprimeraient les combos — une paire n'a de sens que si tout dé peut montrer tout symbole — et rendraient inerte la moitié du design des personnages |
+| D18 | Déplacement de base | Un pas gratuit par tour ; le déplacement ambitieux passe par la face Élan | Tout déplacement payé en dés | Aucun tirage ne peut bloquer le joueur, et on ne dépense pas une décision à avancer d'une case |
+| D19 | Pool de départ | 6 dés identiques | Pool hétérogène dès le départ | Au premier combat le seul aléatoire est le lancer ; la complexité du système croît au rythme de la maîtrise, sans écran de tutoriel |
+| D20 | Aléatoire par tour | Un seul événement : tirage et lancer en un geste | Piocher puis lancer comme deux étapes distinctes | Deux couches de hasard sur une main de 3 dés, c'est trop de variance pour une run de 12 min |
+| D21 | Structure du tour | Tirage → lecture → choix (dépenses et conservations, tout annulable) → validation → résolution → défausse | Résolution immédiate à chaque dépense | Sans aléatoire dans la résolution, la différer ne prive le joueur d'aucune information : l'annulation libre est gratuite. L'ordre des dépenses reste choisi, car il compte pour les combos |
+| D22 | Relances individuelles | Autorisées comme levier de reliques et de personnages, mais plafonnées par tour, en un geste, et sans relance qui engendre une relance | Relance libre, ou aucune relance | Le levier le plus demandé et le plus dangereux : il pèse directement sur le budget de 8 s par tour, donc sur la durée de la run |
 
 ---
 
@@ -33,34 +39,8 @@ il dit où on en est de la réflexion, pas seulement du code.
 
 ### P0 — Bloque le jalon M2 (le premier combat)
 
-Les cinq points P0 initiaux (A1 à A5) sont tranchés : voir D10 à D14. Il reste le modèle du
-dé lui-même.
-
-**A21. Modèle du dé — en attente de validation.**
-Recommandation formulée le 2026-08-23, à confirmer avant que `game-designer` ne rédige les
-règles de combat :
-
-- **Un seul type de dé, faces mixtes.** Des dés de mouvement séparés supprimeraient les
-  combos (une paire n'a de sens que si tout dé peut montrer tout symbole) et rendraient
-  inerte la moitié de l'espace de design des personnages « tordeurs de dés » (D16).
-- **Quatre faces** : Frappe, Garde, Élan, Éclat (joker). Pas davantage : c'est la limite de
-  lisibilité sur téléphone et la limite au-delà de laquelle les combos deviennent illisibles.
-- **Dé de départ** : 3 Frappe, 2 Garde, 1 Élan. Aucun Éclat au départ — l'Éclat s'obtient
-  par les reliques et les gravures, ce qui en fait une progression visible.
-- **Un pas gratuit par tour**, toujours disponible. Les dés servent aux actions, pas au
-  déplacement de base. Sans cette règle, un tirage de trois Frappes empêche de fuir : le
-  joueur perdrait à cause du tirage et non de ses décisions, ce qui viole le pilier 2.
-  Le déplacement ambitieux (2-3 cases, traversée, poussée) reste sur la face Élan.
-- **Pool de départ homogène** : 6 dés identiques. Au premier combat le seul aléatoire est le
-  lancer ; le tirage ne signifie rien tant que les dés sont identiques. La complexité du
-  système croît au rythme de la diversification du pool, donc au rythme de la maîtrise du
-  joueur, sans écran de tutoriel.
-
-**A22. Le dé est-il lancé, ou est-ce un jeton à face fixe ?**
-Conséquence de A21. Recommandation : tirage et lancer sont **un seul geste** — on pige 3 dés
-et ils sont lancés en même temps, donc un seul événement aléatoire par tour. Deux couches
-d'aléatoire (quel dé, puis quelle face) sur une main de 3 dés produisent trop de variance
-pour une run de 12 minutes.
+Tous les points P0 sont tranchés : A1 à A5 par D10-D14, le modèle du dé par D17-D22.
+Le jalon M2 n'est plus bloqué par une question de design.
 
 ### P1 — Bloque le vertical slice (M3)
 
@@ -114,3 +94,4 @@ gaucher. **A20.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 |---|---|---|
 | 2026-08-23 | D1 à D9 | Session de cadrage initiale |
 | 2026-08-23 | D10 à D16 | Arbitrage des P0 : grille, main, report, valeurs, santé, difficulté, identité des personnages |
+| 2026-08-29 | D17 à D22 | Modèle du dé, déplacement, structure du tour, relances. D12 précisée : la conservation est un choix |
