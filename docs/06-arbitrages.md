@@ -32,6 +32,17 @@ il dit où on en est de la réflexion, pas seulement du code.
 | D20 | Aléatoire par tour | Un seul événement : tirage et lancer en un geste | Piocher puis lancer comme deux étapes distinctes | Deux couches de hasard sur une main de 3 dés, c'est trop de variance pour une run de 12 min |
 | D21 | Structure du tour | Tirage → lecture → choix (dépenses et conservations, tout annulable) → validation → résolution → défausse | Résolution immédiate à chaque dépense | Sans aléatoire dans la résolution, la différer ne prive le joueur d'aucune information : l'annulation libre est gratuite. L'ordre des dépenses reste choisi, car il compte pour les combos |
 | D22 | Relances individuelles | Autorisées comme levier de reliques et de personnages, mais plafonnées par tour, en un geste, et sans relance qui engendre une relance | Relance libre, ou aucune relance | Le levier le plus demandé et le plus dangereux : il pèse directement sur le budget de 8 s par tour, donc sur la durée de la run |
+| D23 | Structure de la carte (A6) | Acte entier visible à l'avance : 4 rangs (2 nœuds, 3 nœuds, 2 nœuds, boss), **connexions complètes entre rangs consécutifs** | Graphe branché à arêtes restreintes façon *Slay the Spire* | Des arêtes croisées sont illisibles à 390 pt de large et obligent à faire défiler la carte. On garde 90 % du bénéfice (voir tout l'acte) pour 0 % du coût de lisibilité. Reste 3 choix de chemin par acte |
+| D24 | Récompenses (A7) | 1 relique au choix parmi 3 par combat gagné ; **une seule monnaie** ; boutique au rang 2 des actes 2 et 3 ; 12-15 reliques par run | Monnaie sans choix de relique ; deux monnaies | La méta-progression étant du déblocage de contenu (D3), une 2ᵉ monnaie ne servirait qu'à découper une économie de 12 min |
+| D25 | Refus et retrait (A8) | Refuser une relique est **toujours** possible (rend de la monnaie) ; **retirer une relique prise est impossible** ; en revanche on retire des dés du `pool` à la Forge | Retrait payant en boutique | Refuser est un choix pris avec l'information du moment ; retirer est une optimisation prise plus tard. Le retrait fait converger toutes les runs vers le même ensemble optimal. Le `pool` est la partie sculptable, les reliques la partie accumulée |
+| D26 | Limite de déclenchements (A9, I3) | **20 par tour**, dont **6 au plus pour une même relique**. File FIFO en largeur, jamais ré-entrante | Pas de plafond, avec détection de cycle | Le nombre est dérivé du budget : 20 × 100 ms d'animation = 2,0 s, le plafond de résolution du § 14 de `combat.md`. La détection de cycle n'attrape pas les chaînes finies et gigantesques, qui sont le vrai problème sur téléphone |
+| D27 | Crochets de combo (A20) | Liste **fermée** : Paire, Trio, Écho, Suite, définis sur la séquence ordonnée des dépenses. Détection à la validation, résolution après la dernière dépense, une fois chacun par tour, ordre canonique Paire → Écho → Trio → Suite | Détection au fil de la pose et résolution immédiate | La détection au fil met les combos dans la boucle de récursion et oblige à résoudre pendant la phase de choix, ce qui casse D21. Écho et Suite exigent la **consécutivité**, sinon elles deviennent triviales dès qu'on dépense 5 dés |
+| D28 | Ancrage des intentions | Le motif de cases est figé au télégraphe, **l'ancre suit l'unité** ; les cases visées se recalculent en direct pendant la phase de choix | Cases absolues figées | Avec des cases absolues, déplacer un ennemi n'aurait aucun effet défensif et viderait de sens tout le design de contrôle. La règle n'est honnête que grâce à D21 : le joueur voit l'image finale avant le point de non-retour |
+| D29 | Ce qui traverse un combat | PV, `pool` et reliques traversent. **La Main ne traverse pas** : Main vide, `pool` complet remélangé à chaque combat | Reporter les dés conservés d'un combat au suivant | Reporter oblige à se souvenir d'une décision prise avant un écran de récompense et parfois 3 jours d'interruption, et transforme le dernier tour de chaque combat en tour d'optimisation. Un `pool` non remélangé serait en plus un état invisible entre deux écrans (esprit d'I5) |
+| D30 | Dépense de secours | Tout dé peut, à la place de son action, être dépensé pour un pas d'une case. **La dépense à vide reste interdite** | Autoriser la dépense sans cible ; ne rien autoriser | Étend la garantie de D18 quand le pas gratuit est déjà consommé. La dépense à vide permettrait à un build à déclenchements d'ignorer la grille : la couche tactique disparaîtrait. Une relique peut accorder cette permission (tiers « explosif ») |
+| D31 | Poussée bloquée ou hors grille | La poussée échoue, l'unité ne bouge pas et subit **1 dégât de choc** | Éjection mortelle façon *Into the Breach* | Dans un système sans valeurs sur les dés, l'éjection serait la mécanique la plus forte du jeu : les bords deviendraient la seule chose qui compte |
+| D32 | Portée de la Frappe | Distance 1 **ou 2** en ligne orthogonale dégagée, 2 dégâts dans les deux cas | Mêlée pure (portée 1) | À portée 1, le joueur passe la moitié de ses tours à marcher, ce qui contredit D10 et ajoute ~1 tour par combat, soit 1 min 36 par run. C'est la règle qui finance le budget de temps du tour |
+| D33 | Plafond de combat | 30 tours ; au-delà, combat perdu | Aucun plafond | Garantie de terminaison pour la CI, pas une règle de jeu : la rencontre la plus longue fait 11 tours |
 
 ---
 
@@ -44,34 +55,26 @@ Le jalon M2 n'est plus bloqué par une question de design.
 
 ### P1 — Bloque le vertical slice (M3)
 
-**A6. Structure de la carte.** Chemin branché visible à l'avance façon *Slay the Spire*, ou
-découverte progressive ? Le premier est plus lisible en portrait et permet la planification.
-
-**A7. Système de récompense.** Choix parmi 3 reliques ? Une monnaie et une boutique ? Les
-deux ? Combien de reliques possède-t-on à la fin d'une run (ordre de grandeur : 10-14) ?
-
-**A8. Peut-on refuser / retirer une relique ?** Question cruciale dans un jeu à synergies :
-sans retrait, les builds se diluent ; avec retrait, on optimise trop facilement.
-
-**A9. Limite dure sur les chaînes de déclenchement.** Combien de déclenchements en cascade
-sont autorisés par tour ? Fixer un nombre maintenant, et le tester, plutôt que de découvrir
-un blocage sur téléphone en M5.
-
-**A20. Les crochets de combo.** Quels motifs les reliques peuvent-elles observer : Paire,
-Trio, Écho (un dé identique au précédent), Suite ? Chacun ouvert est un axe de synergies,
-et chacun est aussi une source de boucle potentielle. En fixer la liste avant d'écrire la
-moindre relique — c'est un contrat aussi structurant que les crochets de dépense.
+A6, A7, A8, A9 et A20 sont tranchés (D23 à D27), voir `docs/design/combat.md` et
+`docs/design/run.md`.
 
 **A10. Le format de données d'un effet de relique.** Décision technique à forte conséquence
 de design : plus le format est expressif, plus les reliques sont créatives, mais moins le
 simulateur peut raisonner dessus. À trancher entre M1 et M3, avec `item-designer` dans la
-boucle.
+boucle. La liste des événements que le moteur émet est désormais figée
+(`docs/design/combat.md` § 10.9) : c'est le seul jeu de crochets auxquels ce format peut
+s'accrocher.
+
+**A24. Les valeurs de survie.** PV max de départ (40), soin du Repos (+10), courbe de dégâts
+par tour du joueur. Posées comme hypothèses de travail dans `docs/design/run.md` § 5, elles
+appartiennent à `progression-designer` et doivent être validées par simulation avant M4.
 
 ### P2 — Avant le contenu de masse (M4)
 
 **A11.** Les reliques signatures des personnages sont-elles trouvables par les autres
 personnages ? (recommandation : oui pour les reliques, non pour les règles propres)
-**A12.** Économie de la run : une monnaie ? deux ? aucune ?
+**A12.** Économie de la run : *tranché en partie par D24 — une seule monnaie*. Reste
+ouvert : les prix de la boutique et le montant rendu par un refus (`item-designer`).
 **A13.** Sous-thèmes des 3 biomes, et ce qu'ils changent mécaniquement (pas seulement la
 couleur).
 **A14.** Nombre d'archétypes de build visés et taux de victoire cible par archétype.
@@ -84,7 +87,7 @@ déblocages.*
 **A16.** Rejouabilité longue : paliers d'ascension, mutateurs, seed du jour.
 **A17.** Classements et partage social (implique de casser D9).
 **A18.** Langues à la sortie. **A19.** Accessibilité : daltonisme, taille de texte, mode
-gaucher. **A20.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
+gaucher. **A25.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 
 ---
 
@@ -95,3 +98,4 @@ gaucher. **A20.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 | 2026-08-23 | D1 à D9 | Session de cadrage initiale |
 | 2026-08-23 | D10 à D16 | Arbitrage des P0 : grille, main, report, valeurs, santé, difficulté, identité des personnages |
 | 2026-08-29 | D17 à D22 | Modèle du dé, déplacement, structure du tour, relances. D12 précisée : la conservation est un choix |
+| 2026-08-29 | D23 à D33 | Session `game-designer` : règles de combat et structure de run. Crée `docs/design/combat.md` et `docs/design/run.md`. Tranche A6, A7, A8, A9, A20 et la moitié d'A12. L'ancien A20 de la partie P3 (télémétrie) est renuméroté A25 pour lever le doublon |
