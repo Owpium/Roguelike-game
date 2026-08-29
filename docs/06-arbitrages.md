@@ -19,6 +19,13 @@ il dit où on en est de la réflexion, pas seulement du code.
 | D7 | Art | Généré par code d'abord, remplacé ensuite (ComfyUI + retouches) | Asset packs, artiste dès le départ | Zéro blocage de production, DA cohérente tôt, remplacement progressif |
 | D8 | Ambition | Projet perso ambitieux, sortie éventuelle | Sortie commerciale planifiée, prototype jetable | On vise un jeu fini et bon, sans payer maintenant le coût de la monétisation |
 | D9 | Réseau | 100 % hors ligne en v1 | Comptes, cloud save, classements | Aucune dépendance serveur tant que le jeu n'est pas bon |
+| D10 | Grille | 5×7, déplacement secondaire | Grille large où le déplacement est le levier principal | Une case doit faire 44 pt sous le pouce ; au-delà de 7 rangées on tape à côté |
+| D11 | Main et pool | 3 dés en main, pool de départ de 6, recyclage quand le pool est vide | Main variable, pool reconstitué à chaque combat | Le recyclage rend la composition du pool visible au joueur, ce qui est le cœur du pilier 1 |
+| D12 | Dés non dépensés | Reportés au tour suivant, plafond de 2 | Perdus, reportés sans limite | Crée une vraie décision de temporisation sans permettre d'accumuler jusqu'au tour parfait. Renforce mutuellement les combos (D17) |
+| D13 | Valeurs numériques | Aucune. Une action coûte un dé de la bonne face | Dés à valeurs qu'on additionne | Lisibilité sur petit écran. On pourra ajouter des valeurs si le combat manque de décisions ; l'inverse est très difficile à retirer |
+| D14 | Santé | Points de vie classiques | Dégradation du pool à chaque coup reçu | Trop punitif comme règle par défaut ; la dégradation du pool est réservée aux boss et aux hautes difficultés |
+| D15 | Difficulté cible | 3 à 6 runs avant la première victoire | Victoire à la première run, ou 20 défaites préalables | Territoire *Slay the Spire*. Cible mesurable : ~25-30 % de victoires en découverte, ~55-60 % en maîtrise |
+| D16 | Identité des personnages | Chacun tord les dés à sa manière | Archétypes de combat (le rapide, le lourd, le contrôleur) | Bien plus riche avec ce système. Contrepartie assumée : le personnage de départ doit rester simple, il enseigne les dés |
 
 ---
 
@@ -26,31 +33,34 @@ il dit où on en est de la réflexion, pas seulement du code.
 
 ### P0 — Bloque le jalon M2 (le premier combat)
 
-**A1. Taille de la grille et gestion de la position.**
-Une grille 5×7 en portrait donne des cases confortables au pouce mais peu de place tactique.
-Le déplacement est-il un vrai levier tactique (donc grille plus grande, dés de Pas
-importants) ou un simple positionnement d'appoint (grille minuscule, tout se joue sur la
-dépense) ? *Ça change la boucle de tour, donc tout le reste.*
+Les cinq points P0 initiaux (A1 à A5) sont tranchés : voir D10 à D14. Il reste le modèle du
+dé lui-même.
 
-**A2. Nombre de dés en main et taille du pool de départ.**
-3 dés en main sur un pool de 6 ? La main est-elle de taille fixe ou variable ? Le pool se
-recycle-t-il quand il est vide, ou se reconstitue-t-il à chaque combat ? *Détermine
-directement la longueur d'un tour, donc la durée d'une run.*
+**A21. Modèle du dé — en attente de validation.**
+Recommandation formulée le 2026-08-23, à confirmer avant que `game-designer` ne rédige les
+règles de combat :
 
-**A3. Que fait-on des dés non dépensés ?**
-Perdus, reportés au tour suivant, convertis en ressource ? C'est le principal levier de
-tension d'un tour, et le principal vecteur de synergies (« quand tu gardes un dé, … »).
+- **Un seul type de dé, faces mixtes.** Des dés de mouvement séparés supprimeraient les
+  combos (une paire n'a de sens que si tout dé peut montrer tout symbole) et rendraient
+  inerte la moitié de l'espace de design des personnages « tordeurs de dés » (D16).
+- **Quatre faces** : Frappe, Garde, Élan, Éclat (joker). Pas davantage : c'est la limite de
+  lisibilité sur téléphone et la limite au-delà de laquelle les combos deviennent illisibles.
+- **Dé de départ** : 3 Frappe, 2 Garde, 1 Élan. Aucun Éclat au départ — l'Éclat s'obtient
+  par les reliques et les gravures, ce qui en fait une progression visible.
+- **Un pas gratuit par tour**, toujours disponible. Les dés servent aux actions, pas au
+  déplacement de base. Sans cette règle, un tirage de trois Frappes empêche de fuir : le
+  joueur perdrait à cause du tirage et non de ses décisions, ce qui viole le pilier 2.
+  Le déplacement ambitieux (2-3 cases, traversée, poussée) reste sur la face Élan.
+- **Pool de départ homogène** : 6 dés identiques. Au premier combat le seul aléatoire est le
+  lancer ; le tirage ne signifie rien tant que les dés sont identiques. La complexité du
+  système croît au rythme de la diversification du pool, donc au rythme de la maîtrise du
+  joueur, sans écran de tutoriel.
 
-**A4. Coût des actions.**
-Une action = un dé de la bonne face ? Ou les dés ont-ils des valeurs qu'on additionne ?
-*Les valeurs numériques ouvrent beaucoup de design d'objets, mais alourdissent la lecture
-sur petit écran.* Recommandation à instruire : commencer sans valeurs, ajouter seulement si
-le combat manque de décisions.
-
-**A5. Défaite et santé.**
-Points de vie classiques, ou une jauge plus lisible (ex. : ton pool se dégrade quand tu
-prends des coups) ? *La seconde option lie dégâts et identité, ce qui est élégant, mais elle
-crée une spirale de la mort qu'il faut maîtriser.*
+**A22. Le dé est-il lancé, ou est-ce un jeton à face fixe ?**
+Conséquence de A21. Recommandation : tirage et lancer sont **un seul geste** — on pige 3 dés
+et ils sont lancés en même temps, donc un seul événement aléatoire par tour. Deux couches
+d'aléatoire (quel dé, puis quelle face) sur une main de 3 dés produisent trop de variance
+pour une run de 12 minutes.
 
 ### P1 — Bloque le vertical slice (M3)
 
@@ -66,6 +76,11 @@ sans retrait, les builds se diluent ; avec retrait, on optimise trop facilement.
 **A9. Limite dure sur les chaînes de déclenchement.** Combien de déclenchements en cascade
 sont autorisés par tour ? Fixer un nombre maintenant, et le tester, plutôt que de découvrir
 un blocage sur téléphone en M5.
+
+**A20. Les crochets de combo.** Quels motifs les reliques peuvent-elles observer : Paire,
+Trio, Écho (un dé identique au précédent), Suite ? Chacun ouvert est un axe de synergies,
+et chacun est aussi une source de boucle potentielle. En fixer la liste avant d'écrire la
+moindre relique — c'est un contrat aussi structurant que les crochets de dépense.
 
 **A10. Le format de données d'un effet de relique.** Décision technique à forte conséquence
 de design : plus le format est expressif, plus les reliques sont créatives, mais moins le
@@ -98,3 +113,4 @@ gaucher. **A20.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 | Date | Décision | Contexte |
 |---|---|---|
 | 2026-08-23 | D1 à D9 | Session de cadrage initiale |
+| 2026-08-23 | D10 à D16 | Arbitrage des P0 : grille, main, report, valeurs, santé, difficulté, identité des personnages |
