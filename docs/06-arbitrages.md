@@ -43,6 +43,16 @@ il dit où on en est de la réflexion, pas seulement du code.
 | D31 | Poussée bloquée ou hors grille | La poussée échoue, l'unité ne bouge pas et subit **1 dégât de choc** | Éjection mortelle façon *Into the Breach* | Dans un système sans valeurs sur les dés, l'éjection serait la mécanique la plus forte du jeu : les bords deviendraient la seule chose qui compte |
 | D32 | Portée de la Frappe | Distance 1 **ou 2** en ligne orthogonale dégagée, 2 dégâts dans les deux cas | Mêlée pure (portée 1) | À portée 1, le joueur passe la moitié de ses tours à marcher, ce qui contredit D10 et ajoute ~1 tour par combat, soit 1 min 36 par run. C'est la règle qui finance le budget de temps du tour |
 | D33 | Plafond de combat | 30 tours ; au-delà, combat perdu | Aucun plafond | Garantie de terminaison pour la CI, pas une règle de jeu : la rencontre la plus longue fait 11 tours |
+| D34 | Définition de la puissance | **`P` = `DPT` + 0,5 × `RPT`**, mesurée sur un banc d'essai fixe (`docs/design/progression.md` § 1) | Puissance = `DPT` seul ; indice composite à cinq termes | Sans grandeur calculable, « la puissance doit tripler » n'est pas vérifiable et aucune courbe n'est falsifiable. `DPT` seul rendrait invisible tout le catalogue défensif. Le facteur 0,5 est un paramètre à recalibrer par régression |
+| D35 | Courbe de puissance | Contrat en **ratio** : `P`(boss 3) ÷ `P`(1ᵉʳ tour) ∈ [2,8 ; 3,2], build médian. Budget par acquisition : +7 % commune, +10 % peu commune, +14 % rare, +4 % Forge | Courbe en valeurs absolues par rencontre | Un ratio reste valable quel que soit le personnage joué, donc comparable entre les quatre. L'accélération est structurelle (les facteurs `N_off`, `d̄`, `T_decl` se multiplient), pas obtenue par des reliques tardives plus grosses |
+| D36 | **A24 — valeurs de survie** | PV max **40, constant** toute la run (plafond absolu 50 via relique). **Soin = 12 PV (30 % du max)**, au Repos **et** à la victoire des boss 1 et 2. Table complète des PV ennemis, pression et dégâts entrants dans `progression.md` § 3.3 | Repos +10 / boss +5 (hypothèses de `run.md`) ; PV max croissant 40/50/60 | +10 et +5 ne permettent pas de remonter la marge de survie au-dessus de 2,0 après le boss 2 : le minimum se déplace mécaniquement sur le boss 3, ce qui viole le contrat de `run.md` § 5.4. Un PV max croissant rend la marge incomparable d'un acte à l'autre et ajoute une deuxième courbe de progression à côté du pool (contre le pilier 1) |
+| D37 | Marge de survie | `M(rang)` = PV à l'entrée du rang ÷ dégâts entrants du **nœud le plus dur de ce rang** | Mesure sur le nœud effectivement choisi | Mesurée sur le nœud choisi, prendre le Repos rendrait `M` infinie et effacerait le moment le plus tendu de la run. Mesurée sur le pire nœud, `M` est une propriété de l'état, comparable entre deux runs aux chemins différents — condition pour en tirer une statistique. Minimum obtenu : **2,27 en acte 2 rang 2** |
+| D38 | Forge | Catalogue de 7 opérations, disponible en entier dès la run 1. Pool : **3 dés minimum, 10 maximum** | Débloquer les opérations une à une | Une opération débloquée est une puissance débloquée (D3). Sous 3 dés le tirage cesse d'être une décision ; au-dessus de 10 le joueur ne tient plus la composition en tête et I5 devient une fiction |
+| D39 | Les 4 personnages | `SOCLE` (aucune torsion), `RELANCE` (tirage), `GRAVURE` (faces), `LES-TROIS` (composition du pool). Le personnage de départ **n'a pas de règle propre** ; sa relique signature s'accroche à **Paire** | Donner une règle propre au personnage de départ | Au premier tour d'une première run, le joueur découvre déjà six systèmes ; un septième est du bruit. Paire est le seul combo qui se produit tout seul (5/6 sur trois dés dépensés) : il enseigne les combos sans écran de tutoriel. Récompense **défensive**, pour ne pas fausser le mètre étalon « deux Frappes tuent un Rôdeur » |
+| D40 | **A11 — reliques signatures** | Une relique signature entre au **catalogue commun** dès que son personnage est débloqué. Une **règle propre n'est jamais partagée** | Signatures exclusives ; règles propres accordables par relique | Une signature relue par un autre personnage est une synergie inattendue gratuite à produire, et débloquer un personnage enrichit alors aussi les trois autres. Une règle propre partagée détruit l'identité : un `SOCLE` qui relance rend `RELANCE` inutile. Garde-fou : aucune relique n'accorde de relance inconditionnelle |
+| D41 | Méta-progression | 20 objectifs, 4 paliers. Ordre des personnages = **parcours d'apprentissage** (subir le tirage → le corriger → transformer → choisir). Plafond de **6 runs** par déblocage majeur ; **≥ 0,8 déblocage par run** sur les runs 1-10 | Déblocages rares et gros ; déblocage par accumulation | Le mur de grind ne naît pas de la distance mais du silence. La fin de liste est nombreuse et petite. Tout déblocage majeur a une porte de secours fondée sur la progression, jamais sur la répétition |
+| D42 | Vérification de D3 | **Contrat maître** : le taux de victoire de `SOCLE` avec le catalogue complet ne dépasse pas de plus de **3 points** son taux avec le catalogue de départ | Se fier à l'intention « contenu, pas puissance » | Ajouter une relique au catalogue ressemble à ajouter de la puissance, et parfois c'en est. Sans mesure, D3 est une déclaration. La liste noire des choses qui ne se débloquent jamais est dans `docs/design/meta.md` § 1 |
+| D43 | Chemins de référence | Les stratégies de référence sont **prudent** et **référence** (2 ou 3 Repos). « Tout combattre sans jamais se reposer » est un **pari** à 10-20 % de réussite, pas une stratégie | Les deux extrêmes finissent la run 35-65 % du temps (`run.md` § 6) | Sur 12 rencontres sans Repos, le déficit est de 24 PV de soin contre un gain de puissance d'environ +25 % : le calcul ne se referme pas. Cohérent avec `run.md` § 5.3, qui annonce déjà la mort du chemin gourmand en acte 2 |
 
 ---
 
@@ -65,18 +75,21 @@ boucle. La liste des événements que le moteur émet est désormais figée
 (`docs/design/combat.md` § 10.9) : c'est le seul jeu de crochets auxquels ce format peut
 s'accrocher.
 
-**A24. Les valeurs de survie.** PV max de départ (40), soin du Repos (+10), courbe de dégâts
-par tour du joueur. Posées comme hypothèses de travail dans `docs/design/run.md` § 5, elles
-appartiennent à `progression-designer` et doivent être validées par simulation avant M4.
+A24 est tranché (D34 à D37, D43), voir `docs/design/progression.md`. Restent à **mesurer**
+avant M4, pas à trancher : le facteur 0,5 de la définition de `P`, le taux d'encaissement `τ`
+par rencontre, et la position réelle du minimum de marge de survie.
 
 ### P2 — Avant le contenu de masse (M4)
 
-**A11.** Les reliques signatures des personnages sont-elles trouvables par les autres
-personnages ? (recommandation : oui pour les reliques, non pour les règles propres)
+A11 est tranché (D40) et A14 l'est en partie (D39, D41 : 4 personnages entre 35 % et 65 %
+de victoires ; le nombre d'archétypes de build reste à `item-designer`).
 **A12.** Économie de la run : *tranché en partie par D24 — une seule monnaie*. Reste
 ouvert : les prix de la boutique et le montant rendu par un refus (`item-designer`).
 **A13.** Sous-thèmes des 3 biomes, et ce qu'ils changent mécaniquement (pas seulement la
-couleur).
+couleur). *Précision apportée par `docs/design/meta.md` § 1 : aucun biome n'est déblocable en
+v1 — trois biomes pour trois actes, en verrouiller un verrouillerait un tiers de la run. Ce
+qui se débloque dans un biome, ce sont ses ennemis et ses rencontres. Un 4ᵉ biome
+redeviendrait un déblocage.*
 **A14.** Nombre d'archétypes de build visés et taux de victoire cible par archétype.
 
 ### P3 — Avant la sortie (M5-M7)
@@ -99,3 +112,4 @@ gaucher. **A25.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 | 2026-08-23 | D10 à D16 | Arbitrage des P0 : grille, main, report, valeurs, santé, difficulté, identité des personnages |
 | 2026-08-29 | D17 à D22 | Modèle du dé, déplacement, structure du tour, relances. D12 précisée : la conservation est un choix |
 | 2026-08-29 | D23 à D33 | Session `game-designer` : règles de combat et structure de run. Crée `docs/design/combat.md` et `docs/design/run.md`. Tranche A6, A7, A8, A9, A20 et la moitié d'A12. L'ancien A20 de la partie P3 (télémétrie) est renuméroté A25 pour lever le doublon |
+| 2026-08-31 | D34 à D43 | Session `progression-designer` : puissance, survie, personnages, méta. Crée `docs/design/progression.md`, `docs/design/personnages.md` et `docs/design/meta.md`. Tranche **A24** et **A11**, et une partie d'A14. Corrige les budgets de PV ennemis et de dégâts entrants de `run.md` § 5.2 (le tour d'approche n'y était pas retiré ; l'acte 3 était trop élevé d'environ 40 %) et le soin du Repos, porté de +10 à +12. Signale une contradiction dans `run.md` § 6, tranchée par D43 |
