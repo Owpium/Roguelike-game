@@ -32,8 +32,13 @@ export interface RunContent {
   bosses: Encounter[];
   types: Record<string, EnemyType>;
   startingPool: Die[];
-  /** Variante de règles appliquée à tous les combats de la run. */
+  /** Variante de règles appliquée par défaut à tous les combats de la run. */
   rules?: RuleSet;
+  /**
+   * Règles par acte, index 0 = acte 1. D47 fait entrer `charge` à l'acte 2 : le cerveau des
+   * ennemis n'est donc pas constant sur une run.
+   */
+  rulesByAct?: RuleSet[];
 }
 
 export interface RunState {
@@ -55,8 +60,13 @@ export interface RunState {
 
 export const RUN_RULES = {
   startingHp: 40,
-  restHeal: 10,
-  bossHeal: 5,
+  /**
+   * D36 — un seul chiffre de soin, 12 PV (30 % du max), au Repos comme après un boss.
+   * À 10 et 5, le minimum de marge de survie tombait sur le boss 3, ce qui contredisait le
+   * pic de mortalité en acte 2 qu'exige `run.md` § 5.3.
+   */
+  restHeal: 12,
+  bossHeal: 12,
   coins: { combat: [10, 14], elite: [22, 28], boss: [30, 35] },
 } as const;
 
@@ -141,7 +151,7 @@ export function enterNode(run: RunState, index: number, content: RunContent): Ru
       encounter: findEncounter(content, node.encounterId!),
       types: content.types,
       playerStart: PLAYER_START,
-      rules: content.rules ?? RULES,
+      rules: content.rulesByAct?.[state.act] ?? content.rules ?? RULES,
     });
     // Le combat possède désormais le curseur du RNG : la run le récupère à la sortie.
     state.status = "fighting";

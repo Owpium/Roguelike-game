@@ -30,13 +30,27 @@ ce jalon passe avant le rendu.
 **Réserve** : le contenu des actes 2 et 3, les élites et les boss sont des remplisseurs
 (`packages/content/src/encounters.ts`). Ils font tourner le moteur, ils ne mesurent rien.
 
-### M2 — Le premier combat 🚦 **GATE DE DÉCISION**
+Le moteur applique désormais les règles arbitrées : pas de pas gratuit (D44), grammaire des
+motifs `single`/`lunge`/`line3` (D46), `charge` à partir de l'acte 2 (D47), soin de 12 PV
+(D36). La campagne de mesure reste disponible pour comparer à la référence historique :
+`pnpm sim --campaign --runs 500`.
+
+### M2 — Le premier combat 🚦 **GATE DE DÉCISION** — prochain jalon
 Grille, dés, main, intentions ennemies, 1 personnage, 3 ennemis, rendu généré par code, en
 portrait, sur un vrai téléphone.
 **Sortie** : un combat jouable au pouce.
 **Question du gate** : *est-ce que jouer un seul combat est déjà agréable ?*
 Si non → on pivote la boucle de tour ici, où ça ne coûte que M1+M2. Ne pas franchir ce gate
 par optimisme.
+
+**Deux questions lui ont été explicitement déléguées** :
+- **Les dégâts subis sont-ils au bon niveau ?** (D48) La simulation ne peut pas y répondre :
+  son barème d'IA a un biais défensif tant que A26 n'est pas traité. Trois combats joués à la
+  main trancheront.
+- **Le combat est-il évalué avec des reliques ?** `game-designer` prévient que le kit de base
+  est délibérément maigre — Garde ne fait que « +3 Bouclier » — et que toute la profondeur
+  défensive est reportée sur les reliques. Tester le gate sans deux ou trois reliques
+  factices, c'est mesurer un jeu qui n'existera pas.
 
 ### M3 — Vertical slice
 Carte branchée, 1 acte complet + boss, 15 reliques, récompenses, sauvegarde/reprise,

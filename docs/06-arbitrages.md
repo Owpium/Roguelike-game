@@ -57,6 +57,7 @@ il dit où on en est de la réflexion, pas seulement du code.
 | D45 | Le pas gratuit comme relique | Permission de tier **explosif**, plafonnée à 1 pas/tour, non cumulable, **publiable seulement une fois D46 en place** | Règle propre de personnage | Sans motifs à plusieurs cases, « un pas gratuit » est une relique d'invulnérabilité (mesure du 2026-08-31). D16 réserve aux personnages la torsion des dés, pas de la grille |
 | D46 | Motifs d'attaque | Grammaire fermée à 3 formes dérivées de l'axe ennemi → cible : `single`, `lunge` (2 cases), `line3` (3 cases) | Motif en croix (5 cases) ; motifs libres par ennemi ; intentions en réaction au déplacement | Avec des motifs d'une case tous ancrés sur la case du joueur, le nombre de cases menacées vaut 1 quel que soit le nombre d'ennemis : l'esquive ne peut pas échouer. La croix supprime l'esquive au lieu de la conditionner ; la réaction demanderait un 6ᵉ `kind` et casserait la frise de rejeu |
 | D47 | Cerveau de mêlée | `charge` (déplacement **puis** attaque) par défaut **à partir de l'acte 2** | `charge` dès l'acte 1 ; conserver l'asymétrie | Corrige l'asymétrie ressentie et supprime le tour perdu de réengagement (−0,4 tour/combat), ce qui paie la facture en temps de D44. N'est pas un correctif de l'esquive : une `charge` reste télégraphiée sur une case et reste esquivable d'un pas |
+| D48 | Clôture de l'arbitrage de l'esquive | Le paquet D44-D47 est **adopté sur la seule preuve solide de la campagne — la géométrie** (`contact` 24,9 % → 42,3 %). La question des dégâts subis est **reportée au gate M2**, où le ressenti d'une partie jouée à la main tranchera | Relancer une campagne après correction du barème d'IA | Le barème neutre exigé par le protocole a un biais défensif : il compare 1 PV évité à 1 PV infligé sans créditer une Frappe non létale de rapprocher d'un mort. Aucune colonne de dégâts n'est donc comparable entre variantes. Trois combats joués à la main en diront plus qu'une IA gloutonne à une profondeur |
 
 ---
 
@@ -71,6 +72,13 @@ Le jalon M2 n'est plus bloqué par une question de design.
 
 A6, A7, A8, A9 et A20 sont tranchés (D23 à D27), voir `docs/design/combat.md` et
 `docs/design/run.md`.
+
+**A26. Le terme manquant du barème d'IA.** La politique de simulation doit créditer une
+Frappe non létale d'une fraction de la menace future qu'elle finira par annuler, sinon la
+défense gagne toujours et aucune variante n'est comparable sur les dégâts. Exigences : le
+barème reste exprimé en points de vie, et reste identique d'une variante à l'autre.
+Périmètre : `balance-simulator`. Nécessaire avant toute mesure d'équilibrage de M4, pas avant
+le gate M2 (D48).
 
 **A10. Le format de données d'un effet de relique.** Décision technique à forte conséquence
 de design : plus le format est expressif, plus les reliques sont créatives, mais moins le
@@ -118,5 +126,6 @@ gaucher. **A25.** Télémétrie d'équilibrage et son cadre RGPD/ATT.
 | 2026-08-31 | D23 à D33 | Règles de combat complètes et structure de run |
 | 2026-08-31 | D34 à D43 | Progression, méta-progression, valeurs de survie, les 4 personnages |
 | 2026-08-31 | D44 à D47 | Arbitrage de l'esquive gratuite. **D18 est révoquée par D44** : le pas gratuit disparaît des règles de base et devient une permission de relique |
+| 2026-08-31 | D48 | Clôture : le paquet est adopté sur la géométrie, la question des dégâts passe au gate M2. Les règles arbitrées deviennent les règles par défaut du moteur |
 | 2026-08-29 | D23 à D33 | Session `game-designer` : règles de combat et structure de run. Crée `docs/design/combat.md` et `docs/design/run.md`. Tranche A6, A7, A8, A9, A20 et la moitié d'A12. L'ancien A20 de la partie P3 (télémétrie) est renuméroté A25 pour lever le doublon |
 | 2026-08-31 | D34 à D43 | Session `progression-designer` : puissance, survie, personnages, méta. Crée `docs/design/progression.md`, `docs/design/personnages.md` et `docs/design/meta.md`. Tranche **A24** et **A11**, et une partie d'A14. Corrige les budgets de PV ennemis et de dégâts entrants de `run.md` § 5.2 (le tour d'approche n'y était pas retiré ; l'acte 3 était trop élevé d'environ 40 %) et le soin du Repos, porté de +10 à +12. Signale une contradiction dans `run.md` § 6, tranchée par D43 |

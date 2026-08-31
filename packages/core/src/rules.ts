@@ -53,8 +53,10 @@ export interface RuleSet {
 export const RULES: RuleSet = {
   handSize: 3,
   keepCap: 2,
-  freeStepsPerTurn: 1,
+  // D44 : le pas gratuit est supprimé. Tout déplacement se paie — dépense de secours ou Élan.
+  freeStepsPerTurn: 0,
   attackShapeOverride: null,
+  // D47 : `charge` entre à l'acte 2. L'acte 1 garde `approach`, une nouveauté par rencontre.
   meleeBrain: "approach",
   strikeDamage: 2,
   strikeRangeMin: 1,

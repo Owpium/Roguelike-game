@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCombat, canStrike, legalEntries, reduce, type Encounter } from "./combat.ts";
-import { RULES } from "./rules.ts";
+import { RULES, withRules } from "./rules.ts";
 import { cell } from "./geometry.ts";
 import type { CombatState, Die, EnemyType, Face } from "./types.ts";
 
@@ -30,7 +30,7 @@ function loadedPool(face: Face): Die[] {
   }));
 }
 
-function setup(encounter: Encounter, face: Face = "strike"): CombatState {
+function setup(encounter: Encounter, face: Face = "strike", rules = RULES): CombatState {
   return createCombat({
     rng: { seed: 1, cursor: 0 },
     pool: loadedPool(face),
@@ -39,6 +39,7 @@ function setup(encounter: Encounter, face: Face = "strike"): CombatState {
     encounter,
     types: TYPES,
     playerStart: cell(3, 5),
+    rules,
   });
 }
 
@@ -256,8 +257,18 @@ describe("annulation", () => {
 });
 
 describe("légalité", () => {
-  it("n'autorise qu'un seul pas gratuit par tour", () => {
+  it("n'offre aucun pas gratuit : D44 l'a supprimé des règles de base", () => {
     const state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] });
+    expect(legalEntries(state).some((e) => e.action.kind === "free_step")).toBe(false);
+  });
+
+  it("en offre exactement un quand une relique en accorde un (D45)", () => {
+    const state = setup(
+      { id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] },
+      "strike",
+      withRules({ freeStepsPerTurn: 1 }),
+    );
+    expect(legalEntries(state).some((e) => e.action.kind === "free_step")).toBe(true);
     const after = reduce(
       state,
       { type: "ENTER", entry: { kind: "free_step", dir: "up" } },
