@@ -187,9 +187,9 @@ export interface LegalEntry {
 }
 
 /** Toutes les entrées légales dans l'état courant — le simulateur s'en sert comme d'un menu. */
-export function legalEntries(state: CombatState): LegalEntry[] {
+export function legalEntries(state: CombatState, projected?: CombatState): LegalEntry[] {
   if (state.phase !== "choice") return [];
-  const view = project(state);
+  const view = projected ?? project(state);
   const out: LegalEntry[] = [];
 
   if (freeStepAvailable(state)) {
@@ -338,18 +338,14 @@ function resolveEnemy(state: CombatState, unit: Unit, log: GameEvent[]): void {
   const intent = unit.intent;
   if (!intent) return;
 
-  if (intent.kind === "attack") {
-    for (const offset of intent.pattern) {
-      const cell = translate(unit.cell, offset);
-      if (!inGrid(cell)) continue;
-      if (!eq(cell, state.player.cell)) continue; // pas de tir fratricide en v0
-      applyDamage(state, "player", intent.value, unit.id, log);
-      if (intent.push) {
-        const dir = directionAway(unit.cell, cell);
-        if (dir) push(state, "player", dir, intent.push.distance, unit.id, log);
-      }
-    }
-  } else if (intent.kind === "move") {
+  if (intent.kind === "support" || intent.kind === "zone") {
+    throw new Error(
+      `Intention « ${intent.kind} » non implémentée : elle entre avec le contenu des actes 2 et 3.`,
+    );
+  }
+
+  // Déplacement — `move` et la première moitié d'une `charge`.
+  if (intent.kind === "move" || intent.kind === "charge") {
     for (const offset of intent.path) {
       const to = translate(unit.cell, offset);
       if (!isFree(state, to)) break; // s'arrête devant le premier blocage
@@ -357,10 +353,22 @@ function resolveEnemy(state: CombatState, unit: Unit, log: GameEvent[]): void {
       unit.cell = to;
       log.push({ t: "UNIT_MOVED", unitId: unit.id, from, to, cause: "intent" });
     }
-  } else {
-    throw new Error(
-      `Intention « ${intent.kind} » non implémentée : elle entre avec le contenu des actes 2 et 3.`,
-    );
+  }
+
+  // Attaque — le motif s'ancre sur la case COURANTE. Pour une `charge` dont le déplacement a
+  // été bloqué, l'ancre n'a pas bougé et l'attaque tombe une case trop court : c'est D28 qui
+  // s'applique, et c'est une tactique offerte au joueur.
+  if (intent.kind === "attack" || intent.kind === "charge") {
+    for (const offset of intent.pattern) {
+      const cell = translate(unit.cell, offset);
+      if (!inGrid(cell)) continue; // les cases hors grille sont ignorées à la résolution
+      if (!eq(cell, state.player.cell)) continue; // pas de tir fratricide en v0
+      applyDamage(state, "player", intent.value, unit.id, log);
+      if (intent.push) {
+        const dir = directionAway(unit.cell, cell);
+        if (dir) push(state, "player", dir, intent.push.distance, unit.id, log);
+      }
+    }
   }
 
   log.push({ t: "INTENT_RESOLVED", unitId: unit.id });

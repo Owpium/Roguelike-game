@@ -8,9 +8,11 @@ import {
   onSameLine,
   translate,
   type Cell,
+  type Offset,
 } from "./geometry.ts";
 import { isFree, unitAt } from "./board.ts";
 import type { CombatState, EnemyType, Intent, Unit } from "./types.ts";
+import type { AttackShape } from "./rules.ts";
 
 /**
  * IA ennemie (docs/design/combat.md § 8.4).
@@ -48,18 +50,52 @@ export function stepTowardsPlayer(state: CombatState, from: Cell): Cell | null {
   return null;
 }
 
-function attackIntent(unit: Unit, type: EnemyType, target: Cell): Intent {
+/**
+ * Résout la forme d'un motif d'attaque (D46) au moment du télégraphe.
+ *
+ * La forme ne peut pas être un champ statique d'offsets : `lunge` et `line3` dépendent de
+ * l'axe ennemi → cible. Elle est donc calculée ici, puis figée dans `intent.pattern` comme
+ * n'importe quel motif. D28 s'applique inchangée : l'ancre suit l'unité, et les cases visées
+ * se recalculent en direct pendant la phase de choix.
+ *
+ * Fonction pure de l'état, aucun appel au RNG (I1).
+ */
+export function resolveAttackPattern(anchor: Cell, target: Cell, shape: AttackShape): Offset[] {
+  const a = offsetBetween(anchor, target);
+
+  // `d`, le vecteur unitaire orthogonal à l'axe, n'existe que si l'ancre et la cible sont
+  // alignées. Sinon la forme retombe sur `single`.
+  const perpendicular: Offset | null =
+    a.dy === 0 && a.dx !== 0 ? { dx: 0, dy: 1 } : a.dx === 0 && a.dy !== 0 ? { dx: 1, dy: 0 } : null;
+
+  if (shape === "single" || !perpendicular) return [a];
+
+  const plus = { dx: a.dx + perpendicular.dx, dy: a.dy + perpendicular.dy };
+  if (shape === "lunge") return [a, plus];
+
+  const minus = { dx: a.dx - perpendicular.dx, dy: a.dy - perpendicular.dy };
+  return [minus, a, plus];
+}
+
+function attackIntent(
+  state: CombatState,
+  anchor: Cell,
+  type: EnemyType,
+  target: Cell,
+  kind: "attack" | "charge",
+  path: Offset[],
+): Intent {
+  const shape = state.rules.attackShapeOverride ?? type.shape ?? "single";
   return {
-    kind: "attack",
+    kind,
     // Le motif est figé au télégraphe ; l'ancre suit l'unité (§ 8.2). C'est ce qui fait
     // qu'esquiver est la défense principale du jeu, et qu'une poussée a un effet défensif.
-    pattern: type.pattern.map((o) => {
-      const anchor = offsetBetween(unit.cell, target);
-      return { dx: anchor.dx + o.dx, dy: anchor.dy + o.dy };
-    }),
+    // Pour une `charge`, l'ancre est la case d'ARRIVÉE : si le déplacement est bloqué,
+    // l'attaque tombe une case trop court. Ce n'est pas un cas particulier, c'est D28.
+    pattern: resolveAttackPattern(anchor, target, shape),
     value: type.attack,
     push: type.push ? { distance: type.push.distance, awayFromSource: true } : null,
-    path: [],
+    path,
   };
 }
 
@@ -75,16 +111,26 @@ function moveIntent(from: Cell, to: Cell | null): Intent {
 
 function meleeIntent(state: CombatState, unit: Unit, type: EnemyType): Intent {
   if (manhattan(unit.cell, state.player.cell) <= type.range.max) {
-    return attackIntent(unit, type, state.player.cell);
+    return attackIntent(state, unit.cell, type, state.player.cell, "attack", []);
   }
-  return moveIntent(unit.cell, stepTowardsPlayer(state, unit.cell));
+
+  const step = stepTowardsPlayer(state, unit.cell);
+
+  // D47 — `charge` : se déplacer PUIS attaquer dans le même tour. Elle supprime l'asymétrie
+  // avec le joueur, qui bouge et agit. Elle ne corrige pas l'esquive : le motif reste
+  // télégraphié, simplement ancré une case plus loin.
+  if (state.rules.meleeBrain === "charge" && step && manhattan(step, state.player.cell) <= type.range.max) {
+    return attackIntent(state, step, type, state.player.cell, "charge", [offsetBetween(unit.cell, step)]);
+  }
+
+  return moveIntent(unit.cell, step);
 }
 
 function sniperIntent(state: CombatState, unit: Unit, type: EnemyType): Intent {
   const distance = manhattan(unit.cell, state.player.cell);
   const inRange = distance >= type.range.min && distance <= type.range.max;
   if (inRange && hasClearLine(state, unit.cell, state.player.cell)) {
-    return attackIntent(unit, type, state.player.cell);
+    return attackIntent(state, unit.cell, type, state.player.cell, "attack", []);
   }
 
   // Il ne se déplace jamais sur une case à distance <= 1 du joueur.

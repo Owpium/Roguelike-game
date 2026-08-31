@@ -7,6 +7,14 @@
  *
  * Les valeurs ci-dessous sont celles de `docs/design/combat.md`.
  */
+/**
+ * D46 — grammaire fermée des motifs d'attaque, dérivée au télégraphe de l'axe ennemi → cible.
+ * Soit `a` l'offset vers la case visée et `d` le vecteur unitaire orthogonal à cet axe :
+ * `single` = [a] · `lunge` = [a, a+d] · `line3` = [a−d, a, a+d].
+ * Si l'ennemi et la cible ne sont pas alignés, `d` n'existe pas et la forme retombe sur `single`.
+ */
+export type AttackShape = "single" | "lunge" | "line3";
+
 export interface RuleSet {
   /** Taille de la Main (D11). */
   handSize: number;
@@ -17,6 +25,16 @@ export interface RuleSet {
    * secours, qui suffit seule à garantir qu'aucun tirage ne bloque le joueur.
    */
   freeStepsPerTurn: number;
+  /**
+   * D46. Force la forme de tous les motifs d'attaque, quelle que soit celle du type
+   * d'ennemi. `null` = chaque type utilise la sienne. Levier de contrôle pour la mesure.
+   */
+  attackShapeOverride: AttackShape | null;
+  /**
+   * D47. Cerveau des types `melee`. `approach` = se déplacer OU attaquer (historique),
+   * `charge` = se déplacer PUIS attaquer dans le même tour.
+   */
+  meleeBrain: "approach" | "charge";
   strikeDamage: number;
   strikeRangeMin: number;
   strikeRangeMax: number;
@@ -36,6 +54,8 @@ export const RULES: RuleSet = {
   handSize: 3,
   keepCap: 2,
   freeStepsPerTurn: 1,
+  attackShapeOverride: null,
+  meleeBrain: "approach",
   strikeDamage: 2,
   strikeRangeMin: 1,
   strikeRangeMax: 2,

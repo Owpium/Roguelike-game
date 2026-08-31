@@ -1,6 +1,6 @@
 import type { Cell, Dir, Offset } from "./geometry.ts";
 import type { RngState } from "./rng.ts";
-import type { RuleSet } from "./rules.ts";
+import type { AttackShape, RuleSet } from "./rules.ts";
 
 /**
  * Vocabulaire (CLAUDE.md) : Pool / Main / Face / Dépense / Relique / Intention côté joueur,
@@ -95,6 +95,8 @@ export interface EnemyType {
   /** Portée d'attaque, en distance de Manhattan pour `melee`, en ligne dégagée pour `sniper`. */
   range: { min: number; max: number };
   push: { distance: number } | null;
+  /** D46. Absent vaut `single` : aucun type existant ne change de comportement. */
+  shape?: AttackShape;
 }
 
 export type Phase = "choice" | "won" | "lost";

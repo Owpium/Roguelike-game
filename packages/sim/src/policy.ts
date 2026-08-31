@@ -3,137 +3,176 @@ import {
   eq,
   findUnit,
   inGrid,
+  isFree,
   legalEntries,
+  manhattan,
   project,
   reduce,
   translate,
   type Cell,
   type CombatState,
   type EnemyType,
+  type GameEvent,
   type LegalEntry,
+  type Unit,
 } from "@rl/core";
 
 /**
- * IA de joueur gloutonne — la plus simple des trois que `balance-simulator` devra écrire
- * (l'IA gloutonne, l'IA orientée archétype, l'IA aléatoire). Elle sert de plancher : un jeu
- * dont le taux de victoire ne se distingue pas entre ces trois-là n'a pas assez de décisions.
+ * IA de joueur gloutonne, barème exprimé en **une seule monnaie : les points de vie**.
  *
- * Elle ne prétend pas bien jouer. Elle prétend jouer *de façon reproductible*.
+ * C'est une exigence de validité de la campagne de mesure, pas une conception d'IA
+ * (`docs/design/esquive-arbitrage.md` § 5.5). Le barème précédent était calibré sous les
+ * règles actuelles — une esquive y valait 3, une Frappe non létale 10 — donc il aurait
+ * comparé des pondérations en croyant comparer des règles : privée du pas gratuit, cette IA
+ * n'aurait jamais fui, et aurait rendu D44 artificiellement efficace.
+ *
+ * Aucun seuil, aucune constante ne change d'une variante à l'autre.
  */
 
-/** Cases visées par une intention, ancre incluse (combat.md § 8.2). */
-export function threatenedCells(state: CombatState): Cell[] {
-  const out: Cell[] = [];
+const key = (c: Cell): string => `${c.x},${c.y}`;
+
+/**
+ * Case d'ancrage réelle de l'intention : pour une `charge`, le motif est ancré sur la case
+ * d'arrivée, qu'il faut donc projeter en tenant compte des blocages.
+ */
+function projectedAnchor(state: CombatState, unit: Unit): Cell {
+  let anchor = unit.cell;
+  const intent = unit.intent;
+  if (!intent) return anchor;
+  if (intent.kind !== "move" && intent.kind !== "charge") return anchor;
+  for (const offset of intent.path) {
+    const to = translate(anchor, offset);
+    if (!isFree(state, to)) break;
+    anchor = to;
+  }
+  return anchor;
+}
+
+/** Menace en PV pesant sur chaque case : somme des dégâts des intentions qui la couvrent. */
+export function threatMap(state: CombatState): Map<string, number> {
+  const map = new Map<string, number>();
   for (const unit of state.units) {
-    if (unit.intent?.kind !== "attack") continue;
-    for (const offset of unit.intent.pattern) {
-      const c = translate(unit.cell, offset);
-      if (inGrid(c)) out.push(c);
+    const intent = unit.intent;
+    if (!intent || (intent.kind !== "attack" && intent.kind !== "charge")) continue;
+    const anchor = projectedAnchor(state, unit);
+    for (const offset of intent.pattern) {
+      const cell = translate(anchor, offset);
+      if (!inGrid(cell)) continue;
+      map.set(key(cell), (map.get(key(cell)) ?? 0) + intent.value);
     }
   }
-  return out;
+  return map;
 }
 
-function isThreatened(state: CombatState, c: Cell): boolean {
-  return threatenedCells(state).some((t) => eq(t, c));
+/** Menace apportée par une seule unité, pour créditer une frappe létale de ce qu'elle évite. */
+function threatFrom(state: CombatState, unit: Unit, cell: Cell): number {
+  const intent = unit.intent;
+  if (!intent || (intent.kind !== "attack" && intent.kind !== "charge")) return 0;
+  const anchor = projectedAnchor(state, unit);
+  return intent.pattern.some((o) => eq(translate(anchor, o), cell)) ? intent.value : 0;
 }
 
-/** Distance au plus proche ennemi. Sert à ce que l'IA daigne avancer. */
-function distanceToNearest(state: CombatState, from: Cell): number {
-  let best = Infinity;
-  for (const unit of state.units) {
-    best = Math.min(best, Math.abs(unit.cell.x - from.x) + Math.abs(unit.cell.y - from.y));
-  }
-  return best;
-}
-
-function incomingDamage(state: CombatState): number {
-  let total = 0;
-  for (const unit of state.units) {
-    if (unit.intent?.kind !== "attack") continue;
-    for (const offset of unit.intent.pattern) {
-      if (eq(translate(unit.cell, offset), state.player.cell)) total += unit.intent.value;
-    }
-  }
-  return total;
-}
-
-function scoreEntry(state: CombatState, entry: LegalEntry): number {
-  const view = project(state);
+function scoreEntry(view: CombatState, threat: Map<string, number>, entry: LegalEntry): number {
+  const here = threat.get(key(view.player.cell)) ?? 0;
   const action = entry.action;
-
-  if (action.kind === "free_step" || (action.kind === "spend" && action.action.type === "step")) {
-    const dir = action.kind === "free_step" ? action.dir : action.action.type === "step" ? action.action.dir : null;
-    if (!dir) return 0;
-    const to = translate(view.player.cell, DIR_VECTOR[dir]);
-    const escaping = isThreatened(view, view.player.cell) && !isThreatened(view, to);
-    // L'esquive passe APRÈS les frappes : une première version notait le pas gratuit au-dessus
-    // d'une frappe non létale, et l'IA passait la partie à fuir sans jamais tuer personne.
-    if (escaping) return action.kind === "free_step" ? 6 : 3;
-
-    // Se rapprocher quand aucune frappe n'est possible. Sans ça, l'IA reste plantée sur sa
-    // case de départ à attendre que les ennemis viennent, et les combats durent trois fois
-    // le budget de tours.
-    const closing =
-      distanceToNearest(view, to) < distanceToNearest(view, view.player.cell) &&
-      !isThreatened(view, to);
-    if (!closing) return 0;
-    return action.kind === "free_step" ? 2 : 1;
+  if (action.kind === "free_step") {
+    const to = translate(view.player.cell, DIR_VECTOR[action.dir]);
+    return here - (threat.get(key(to)) ?? 0);
   }
-
-  if (action.kind !== "spend") return 0;
 
   switch (action.action.type) {
+    case "step": {
+      const to = translate(view.player.cell, DIR_VECTOR[action.action.dir]);
+      return here - (threat.get(key(to)) ?? 0);
+    }
+
+    case "guard":
+      return Math.min(here, view.rules.guardShield);
+
     case "strike": {
       const target = findUnit(view, action.action.targetId);
       if (!target) return 0;
-      // Achever une unité vaut davantage que d'entamer : un ennemi mort n'agit plus.
-      return target.hp <= view.rules.strikeDamage ? 14 : 10;
+      const lethal = target.hp <= view.rules.strikeDamage;
+      // Une frappe létale vaut les dégâts qu'elle inflige plus la menace qu'elle annule.
+      return view.rules.strikeDamage + (lethal ? threatFrom(view, target, view.player.cell) : 0);
     }
-    case "guard": {
-      const incoming = incomingDamage(view);
-      if (incoming === 0) return 0;
-      return Math.min(incoming, view.rules.guardShield) >= view.rules.guardShield ? 7 : 4;
-    }
+
     case "surge": {
       const { dir, distance } = action.action;
-      let killed = 0;
+      let trampled = 0;
+      let lethal = 0;
       for (let step = 1; step <= distance; step++) {
         const c = translate(view.player.cell, {
           dx: DIR_VECTOR[dir].dx * step,
           dy: DIR_VECTOR[dir].dy * step,
         });
         const unit = view.units.find((u) => eq(u.cell, c));
-        if (unit && unit.hp <= view.rules.surgeTrampleDamage) killed += 1;
+        if (!unit) continue;
+        trampled += 1;
+        if (unit.hp <= view.rules.surgeTrampleDamage) lethal += 1;
       }
       const arrival = translate(view.player.cell, {
         dx: DIR_VECTOR[dir].dx * distance,
         dy: DIR_VECTOR[dir].dy * distance,
       });
-      return killed * 10 + (isThreatened(view, arrival) ? 0 : 2);
+      return here - (threat.get(key(arrival)) ?? 0) + 2 * lethal + trampled;
     }
-    default:
-      return 0;
   }
 }
 
-/** Joue un tour entier : pose les entrées, conserve, valide. */
-export function playTurn(state: CombatState, types: Record<string, EnemyType>): CombatState {
+/**
+ * Départage quand rien ne vaut plus de zéro : se rapprocher de l'ennemi le plus proche.
+ *
+ * Le barème du § 5.5 n'a pas de terme pour l'approche, et sans ce départage l'IA passe son
+ * tour dès qu'aucune frappe n'est possible et qu'aucune menace ne pèse — ce qui gonfle les
+ * tours par rencontre dans **toutes** les variantes, mais pas de la même quantité. C'est un
+ * ordre lexicographique, pas une pondération : aucune constante n'entre dans le score, donc
+ * la neutralité du barème vis-à-vis des règles est préservée.
+ */
+function closingRank(view: CombatState, entry: LegalEntry): number {
+  const action = entry.action;
+  const dir =
+    action.kind === "free_step" ? action.dir : action.action.type === "step" ? action.action.dir : null;
+  if (!dir) return 0;
+  const to = translate(view.player.cell, DIR_VECTOR[dir]);
+  const nearest = (from: Cell): number =>
+    view.units.reduce((best, u) => Math.min(best, manhattan(u.cell, from)), Infinity);
+  return nearest(to) < nearest(view.player.cell) ? 1 : 0;
+}
+
+export interface TurnOutcome {
+  state: CombatState;
+  log: GameEvent[];
+  /** Unités dont l'intention résolue ce tour était `attack` ou `charge`. */
+  attackers: number[];
+}
+
+export function playTurn(state: CombatState, types: Record<string, EnemyType>): TurnOutcome {
   let current = state;
 
   for (let guard = 0; guard < 12; guard += 1) {
-    const entries = legalEntries(current);
+    const view = project(current);
+    const entries = legalEntries(current, view);
     if (entries.length === 0) break;
+    const threat = threatMap(view);
+
     let best: LegalEntry | null = null;
     let bestScore = 0;
     for (const entry of entries) {
-      const score = scoreEntry(current, entry);
+      const score = scoreEntry(view, threat, entry);
+      // Départage à score égal : l'ordre de `legalEntries`, qui est déjà déterministe.
       if (score > bestScore) {
         bestScore = score;
         best = entry;
       }
     }
-    if (!best) break;
+
+    if (!best) {
+      const closing = entries.find((e) => closingRank(view, e) === 1);
+      if (!closing) break;
+      best = closing;
+    }
+
     current = reduce(current, { type: "ENTER", entry: best.action }, types).state;
   }
 
@@ -147,5 +186,9 @@ export function playTurn(state: CombatState, types: Record<string, EnemyType>): 
     current = reduce(current, { type: "KEEP", dieId: die.dieId }, types).state;
   }
 
-  return reduce(current, { type: "VALIDATE" }, types).state;
+  const attackers = current.units
+    .filter((u) => u.intent?.kind === "attack" || u.intent?.kind === "charge")
+    .map((u) => u.id);
+  const validated = reduce(current, { type: "VALIDATE" }, types);
+  return { state: validated.state, log: validated.log, attackers };
 }

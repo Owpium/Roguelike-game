@@ -8,13 +8,13 @@ import {
   type RunState,
 } from "@rl/core";
 import { playTurn } from "./policy.ts";
+import { accumulateTurn, emptyMetrics, type RunMetrics } from "./metrics.ts";
 
 export interface RunResult {
   seed: number;
   outcome: "won" | "dead";
   hp: number;
-  turns: number;
-  encounters: number;
+  metrics: RunMetrics;
   history: string[];
 }
 
@@ -34,8 +34,8 @@ function chooseNode(run: RunState): number {
 
 export function simulateRun(seed: number, content: RunContent): RunResult {
   let run = createRun(seed, content);
-  let turns = 0;
-  let encounters = 0;
+  const metrics = emptyMetrics();
+  const maxTurns = (content.rules ?? RULES).maxTurns;
 
   while (run.status === "choosing" || run.status === "fighting") {
     if (run.status === "choosing") {
@@ -43,14 +43,32 @@ export function simulateRun(seed: number, content: RunContent): RunResult {
       continue;
     }
 
-    encounters += 1;
+    const isBoss = run.currentNode?.kind === "boss";
+    // Seul l'acte 1 est du contenu réel : tout le reste est un remplisseur et ne compte pas.
+    const measured = run.act === 0;
+    const hpBefore = run.combat!.player.hp;
     let combat = run.combat!;
-    let safety = 0;
-    while (combat.phase === "choice" && safety < (content.rules ?? RULES).maxTurns + 2) {
-      combat = playTurn(combat, content.types);
+    let turns = 0;
+
+    while (combat.phase === "choice" && turns < maxTurns + 2) {
+      const outcome = playTurn(combat, content.types);
+      if (measured) accumulateTurn(metrics, outcome.log, outcome.attackers);
+      combat = outcome.state;
       turns += 1;
-      safety += 1;
     }
+
+    if (measured) {
+      metrics.encounters += 1;
+      metrics.hpLost += hpBefore - combat.player.hp;
+      if (isBoss) {
+        metrics.encountersBoss += 1;
+        metrics.turnsBoss += turns;
+      } else {
+        metrics.encountersNormal += 1;
+        metrics.turnsNormal += turns;
+      }
+    }
+
     run = resolveCombat({ ...run, combat });
   }
 
@@ -58,8 +76,7 @@ export function simulateRun(seed: number, content: RunContent): RunResult {
     seed,
     outcome: run.status === "won" ? "won" : "dead",
     hp: run.hp,
-    turns,
-    encounters,
+    metrics,
     history: run.history,
   };
 }

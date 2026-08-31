@@ -1,9 +1,11 @@
+import { VARIANTS, simContent, type Variant } from "./content.ts";
+import { aggregate, type RunMetrics } from "./metrics.ts";
 import { simulateRun } from "./runner.ts";
-import { VARIANTS, simContent } from "./content.ts";
 
 /**
  * `pnpm sim --seed 42` — joue une run complète en console, sans un seul pixel.
- * `pnpm sim --seed 1 --runs 200` — agrège N runs consécutives.
+ * `pnpm sim --seed 1 --runs 400 --variant A` — agrège une variante.
+ * `pnpm sim --campaign --runs 400` — les six variantes appariées sur les mêmes seeds.
  */
 
 function arg(name: string, fallback: number): number {
@@ -20,30 +22,54 @@ function flag(name: string, fallback: string): string {
 
 const seed = arg("seed", 42);
 const runs = arg("runs", 1);
-const variantName = flag("variant", "base");
-const variant = VARIANTS[variantName];
-if (!variant) {
-  console.error(`Variante inconnue : ${variantName}. Connues : ${Object.keys(VARIANTS).join(", ")}`);
-  process.exit(1);
-}
-const content = simContent(variant);
+const campaign = process.argv.includes("--campaign");
 
-if (runs === 1) {
-  const result = simulateRun(seed, content);
-  console.log(`seed ${result.seed} — variante « ${variantName} » — ${result.outcome === "won" ? "VICTOIRE" : "MORT"}`);
+function measure(variant: Variant, count: number): RunMetrics[] {
+  const content = simContent(variant.rules, variant.types);
+  return Array.from({ length: count }, (_, i) => simulateRun(seed + i, content).metrics);
+}
+
+function pct(value: number): string {
+  return `${(value * 100).toFixed(1)} %`;
+}
+
+if (campaign) {
+  console.log(`Campagne — ${runs} seeds par variante, mêmes seeds partout (comparaison appariée)`);
+  console.log("Métriques : docs/design/esquive-arbitrage.md § 5.2\n");
+  const header = ["var", "contact", "pv/renc", "tours/renc", "runs0", "secours"];
+  console.log(header.map((h, i) => h.padEnd(i === 0 ? 4 : 12)).join(""));
+  for (const variant of VARIANTS) {
+    const a = aggregate(measure(variant, runs));
+    const row = [
+      variant.id.padEnd(4),
+      pct(a.contact).padEnd(12),
+      a.hpPerEncounter.toFixed(2).padEnd(12),
+      a.turnsPerNormal.toFixed(1).padEnd(12),
+      pct(a.zeroDamageShare).padEnd(12),
+      pct(a.rescueShare).padEnd(12),
+    ];
+    console.log(row.join(""));
+  }
+  console.log("\nToutes les métriques portent sur l'acte 1, seul contenu réel. Le taux de");
+  console.log("victoire n'est pas décisionnel : les actes 2 et 3 sont des remplisseurs.");
+} else if (runs === 1) {
+  const variant = VARIANTS.find((v) => v.id === flag("variant", "R")) ?? VARIANTS[0]!;
+  const result = simulateRun(seed, simContent(variant.rules, variant.types));
+  console.log(`seed ${result.seed} — variante ${variant.id} (${variant.label})`);
+  console.log(result.outcome === "won" ? "VICTOIRE" : "MORT");
   for (const line of result.history) console.log(line);
-  console.log(`${result.encounters} rencontres, ${result.turns} tours, ${result.hp} PV`);
+  console.log(`${result.metrics.encounters} rencontres, ${result.hp} PV`);
 } else {
-  const results = Array.from({ length: runs }, (_, i) => simulateRun(seed + i, content));
-  const won = results.filter((r) => r.outcome === "won").length;
-  const turns = results.map((r) => r.turns).sort((a, b) => a - b);
-  const hps = results.map((r) => r.hp).sort((a, b) => a - b);
-  const median = (xs: number[]): number => xs[Math.floor(xs.length / 2)] ?? 0;
-  const untouched = results.filter((r) => r.hp === 40).length;
-  console.log(`${runs} runs depuis la seed ${seed} — variante « ${variantName} »`);
-  console.log(`victoires : ${won} (${((won / runs) * 100).toFixed(1)} %)`);
-  console.log(`tours par run : médiane ${median(turns)}, min ${turns[0]}, max ${turns[turns.length - 1]}`);
-  console.log(`PV en fin de run : médiane ${median(hps)}, min ${hps[0]}`);
-  console.log(`runs terminées sans perdre un seul PV : ${untouched} (${((untouched / runs) * 100).toFixed(1)} %)`);
-  console.log("Rappel : les actes 2 et 3 sont des remplisseurs, ces chiffres ne mesurent pas l'équilibrage.");
+  const variant = VARIANTS.find((v) => v.id === flag("variant", "R"));
+  if (!variant) {
+    console.error(`Variante inconnue. Connues : ${VARIANTS.map((v) => v.id).join(", ")}`);
+    process.exit(1);
+  }
+  const a = aggregate(measure(variant, runs));
+  console.log(`${runs} runs depuis la seed ${seed} — variante ${variant.id} (${variant.label})`);
+  console.log(`contact              : ${pct(a.contact)}`);
+  console.log(`pv perdus / rencontre: ${a.hpPerEncounter.toFixed(2)}`);
+  console.log(`tours / rencontre    : ${a.turnsPerNormal.toFixed(1)} (boss : ${a.turnsPerBoss.toFixed(1)})`);
+  console.log(`runs sans un dégât   : ${pct(a.zeroDamageShare)}`);
+  console.log(`dépenses de secours  : ${pct(a.rescueShare)}`);
 }
