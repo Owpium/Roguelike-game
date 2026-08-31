@@ -4,8 +4,10 @@
 > Répond à `docs/design/rapports/2026-08-31-esquive-gratuite.md`.
 > Modifie `docs/design/combat.md` (§ 2.1, 3, 5.5, 6, 8, 9, 10.5, 11.1, 14, 15).
 > Ne touche pas à D21 ni D28, qui ne sont pas rouvertes.
-> Décisions à consigner par le propriétaire dans `docs/06-arbitrages.md` : **D34 à D37**, lignes
-> prêtes à coller en § 6.
+> Décisions à consigner par le propriétaire dans `docs/06-arbitrages.md` : **D44 à D47**, lignes
+> prêtes à coller en § 6. (Numérotation choisie après coup : `progression-designer` a pris
+> D34-D43 dans la même session. Si le propriétaire consolide dans un autre ordre, seuls ces
+> quatre numéros sont à réécrire, ici et dans `combat.md`.)
 
 ---
 
@@ -78,7 +80,7 @@ C'est la seule chose sur laquelle je contredis l'analyse reçue, et c'est le cœ
 
 ## 3. L'arbitrage
 
-### D34 — Le pas gratuit est supprimé. **Retenue (piste 1).**
+### D44 — Le pas gratuit est supprimé. **Retenue (piste 1).**
 
 Tout déplacement se paie : dépense de secours (1 dé, 1 case, D30) ou Élan (1 dé, 2-3 cases,
 traversée). Le pas gratuit disparaît du jeu de base.
@@ -103,7 +105,7 @@ la grille redevient un problème.
 - *Ne rien changer et compenser par les dégâts.* Écartée par le rapport, à raison : un taux de
   toucher nul ne se corrige pas par un multiplicateur.
 
-### D35 — Le pas gratuit devient une permission de relique, tier explosif. **Retenue (piste 2), sous condition.**
+### D45 — Le pas gratuit devient une permission de relique, tier explosif. **Retenue (piste 2), sous condition.**
 
 Le texte de la permission, à reprendre tel quel par `item-designer` :
 
@@ -117,7 +119,7 @@ Contraintes que j'impose à la relique qui la portera :
 - **Non cumulable au-delà de 1 pas par tour.** Deux exemplaires, ou cette relique plus une
   relique de mobilité, ne donnent jamais 2 pas gratuits. Sans ce plafond, on reconstruit
   l'immunité de la mesure et on la rend permanente pour le reste de la run.
-- **Condition de publication : elle n'entre au catalogue qu'une fois D36 en place.** Sans motifs
+- **Condition de publication : elle n'entre au catalogue qu'une fois D46 en place.** Sans motifs
   à plusieurs cases, « un pas gratuit par tour » n'est pas une relique puissante, c'est une
   relique d'invulnérabilité — la mesure des 200 runs en est la démonstration. C'est le point le
   plus important de cette section : **la piste 2 est mécaniquement conditionnée par les motifs.**
@@ -127,7 +129,7 @@ tordent les dés, pas la grille ; et un personnage dont l'identité est « je ne
 dégâts » est inéquilibrable par construction — on ne peut pas le rendre plus faible ailleurs sans
 le rendre injouable.
 
-### D36 — Grammaire des motifs d'attaque : `single`, `lunge`, `line3`. **Retenue.**
+### D46 — Grammaire des motifs d'attaque : `single`, `lunge`, `line3`. **Retenue.**
 
 C'est le correctif de la cause géométrique. Trois formes, liste fermée en v1, chacune dérivée
 **au moment du télégraphe** de l'axe ennemi → case visée.
@@ -168,7 +170,7 @@ Sa fréquence de 1/6 et son statut d'« événement » (§ 5 de `combat.md`) s'e
   cesserait d'être une frise linéaire. Coût structurel élevé pour un problème que la géométrie
   résout à coût nul.
 
-### D37 — `charge` devient le cerveau de mêlée par défaut à partir de l'acte 2. **Retenue (piste 3), reclassée.**
+### D47 — `charge` devient le cerveau de mêlée par défaut à partir de l'acte 2. **Retenue (piste 3), reclassée.**
 
 Adoptée, mais **pas comme correctif de l'esquive** — elle n'en est pas un (§ 2, point 4). Elle est
 adoptée pour deux raisons qui lui sont propres :
@@ -176,11 +178,11 @@ adoptée pour deux raisons qui lui sont propres :
 1. **Elle supprime l'asymétrie ressentie**, qui est un vrai défaut : le joueur se déplace *et*
    agit, l'ennemi fait l'un ou l'autre. Sur un télégraphe, cette asymétrie se lit comme de la
    bêtise, pas comme de la clémence.
-2. **Elle paie la facture en temps de D34.** Aujourd'hui, un ennemi qui a frappé dans le vide se
+2. **Elle paie la facture en temps de D44.** Aujourd'hui, un ennemi qui a frappé dans le vide se
    retrouve à distance 2 et gâche un tour à marcher ; le joueur gâche le sien à attendre. La
    boucle « attaque manquée → déplacement → attaque manquée » du rapport coûte des tours aux deux
    camps. Avec `charge`, l'ennemi se réengage dans le même tour. Estimation : **−0,4 tour par
-   combat** sur les actes 2 et 3, ce qui compense presque exactement le coût de D34 (§ 4).
+   combat** sur les actes 2 et 3, ce qui compense presque exactement le coût de D44 (§ 4).
 
 **Pas en acte 1.** `run.md` § 5.6 place `charge` en acte 2, et la règle de production « une
 rencontre n'introduit jamais deux nouveautés à la fois » tient. Les trois ennemis de départ
@@ -194,10 +196,10 @@ aucun dégât supplémentaire, puisqu'elle ne casse pas l'esquive.
 
 | # | Décision | Retenu | Alternative écartée | Raison |
 |---|---|---|---|---|
-| D34 | Pas gratuit | **Supprimé.** Tout déplacement se paie : dépense de secours (D30) ou Élan | Pas gratuit conditionnel ; un pas tous les deux tours ; statu quo compensé par les dégâts | La garantie anti-blocage de D18 est intégralement fournie par D30 ; le pas gratuit ne conservait qu'une action gratuite par tour, utilisée ~100 % des tours et jamais arbitrée. Le conditionnel ferait dépendre la légalité d'une entrée de l'ordre des entrées, donc de l'annulation LIFO |
-| D35 | Le pas gratuit comme relique | Permission de tier **explosif**, plafonnée à 1 pas/tour, non cumulable, **publiable seulement une fois D36 en place** | Règle propre de personnage | Sans motifs à plusieurs cases, « un pas gratuit » est une relique d'invulnérabilité (mesure du 2026-08-31). D16 réserve aux personnages la torsion des dés, pas de la grille |
-| D36 | Motifs d'attaque | Grammaire fermée à 3 formes dérivées de l'axe ennemi → cible : `single`, `lunge` (2 cases), `line3` (3 cases) | Motif en croix (5 cases) ; motifs libres par ennemi ; intentions en réaction au déplacement | Avec des motifs d'une case tous ancrés sur la case du joueur, le nombre de cases menacées vaut 1 quel que soit le nombre d'ennemis : l'esquive ne peut pas échouer. La croix supprime l'esquive au lieu de la conditionner ; la réaction demanderait un 6ᵉ `kind` et casserait la frise de rejeu |
-| D37 | Cerveau de mêlée | `charge` (déplacement **puis** attaque) par défaut **à partir de l'acte 2** | `charge` dès l'acte 1 ; conserver l'asymétrie | Corrige l'asymétrie ressentie et supprime le tour perdu de réengagement (−0,4 tour/combat), ce qui paie la facture en temps de D34. N'est pas un correctif de l'esquive : une `charge` reste télégraphiée sur une case et reste esquivable d'un pas |
+| D44 | Pas gratuit | **Supprimé.** Tout déplacement se paie : dépense de secours (D30) ou Élan | Pas gratuit conditionnel ; un pas tous les deux tours ; statu quo compensé par les dégâts | La garantie anti-blocage de D18 est intégralement fournie par D30 ; le pas gratuit ne conservait qu'une action gratuite par tour, utilisée ~100 % des tours et jamais arbitrée. Le conditionnel ferait dépendre la légalité d'une entrée de l'ordre des entrées, donc de l'annulation LIFO |
+| D45 | Le pas gratuit comme relique | Permission de tier **explosif**, plafonnée à 1 pas/tour, non cumulable, **publiable seulement une fois D46 en place** | Règle propre de personnage | Sans motifs à plusieurs cases, « un pas gratuit » est une relique d'invulnérabilité (mesure du 2026-08-31). D16 réserve aux personnages la torsion des dés, pas de la grille |
+| D46 | Motifs d'attaque | Grammaire fermée à 3 formes dérivées de l'axe ennemi → cible : `single`, `lunge` (2 cases), `line3` (3 cases) | Motif en croix (5 cases) ; motifs libres par ennemi ; intentions en réaction au déplacement | Avec des motifs d'une case tous ancrés sur la case du joueur, le nombre de cases menacées vaut 1 quel que soit le nombre d'ennemis : l'esquive ne peut pas échouer. La croix supprime l'esquive au lieu de la conditionner ; la réaction demanderait un 6ᵉ `kind` et casserait la frise de rejeu |
+| D47 | Cerveau de mêlée | `charge` (déplacement **puis** attaque) par défaut **à partir de l'acte 2** | `charge` dès l'acte 1 ; conserver l'asymétrie | Corrige l'asymétrie ressentie et supprime le tour perdu de réengagement (−0,4 tour/combat), ce qui paie la facture en temps de D44. N'est pas un correctif de l'esquive : une `charge` reste télégraphiée sur une case et reste esquivable d'un pas |
 
 ---
 
@@ -205,7 +207,7 @@ aucun dégât supplémentaire, puisqu'elle ne casse pas l'esquive.
 
 ### 4.1 Budget de tour
 
-| Phase | Aujourd'hui | Après D34 + D36 | Détail |
+| Phase | Aujourd'hui | Après D44 + D46 | Détail |
 |---|---|---|---|
 | 0 — Début de tour | 0,0 s | 0,0 s | |
 | 1 — Tirage | 0,5 s | 0,5 s | |
@@ -229,24 +231,25 @@ combat normal**. Le contrat est 4-6 : on est dedans, avec ~0,5 tour de marge.
 
 | Effet | Δ tours / combat normal | Raisonnement |
 |---|---|---|
-| D34 (pas gratuit supprimé) | **+0,4** | Le joueur convertit un dé en pas sur ~50 % des tours menacés. 7 fois sur 8, ce dé est une Garde ou un Élan de faible valeur : la perte de DPT est de ~10 %, pas de 33 % |
-| D36 (motifs) | **+0,2** | Les tenailles obligent à dépenser une Garde au lieu d'une Frappe, et les dégâts encaissés n'accélèrent rien |
-| D37 (`charge`, actes 2-3) | **−0,4** | Plus de tour perdu au réengagement, des deux côtés |
-| **Net acte 1** (sans D37) | **+0,6** | 5,5 → **6,1 tours** |
+| D44 (pas gratuit supprimé) | **+0,4** | Le joueur convertit un dé en pas sur ~50 % des tours menacés. 7 fois sur 8, ce dé est une Garde ou un Élan de faible valeur : la perte de DPT est de ~10 %, pas de 33 % |
+| D46 (motifs) | **+0,2** | Les tenailles obligent à dépenser une Garde au lieu d'une Frappe, et les dégâts encaissés n'accélèrent rien |
+| D47 (`charge`, actes 2-3) | **−0,4** | Plus de tour perdu au réengagement, des deux côtés |
+| **Net acte 1** (sans D47) | **+0,6** | 5,5 → **6,1 tours** |
 | **Net actes 2-3** | **+0,2** | 5,5 → **5,7 tours** |
 
 Traduction en durée : acte 1, 6,1 × 7,6 = **46 s** (contre 44 s aujourd'hui, contrat 40 s) ;
 actes 2-3, 5,7 × 7,6 = **43 s**. On reste sous le seuil d'alerte de +20 % de
 `docs/01-boucle-et-pacing.md`, mais l'acte 1 est le point tendu.
 
-Sur une run entière : −0,6 s × ~72 tours = **−43 s** rendus par D34, +9 s de lecture, +0,2 tour ×
+Sur une run entière : −0,6 s × ~72 tours = **−43 s** rendus par D44, +9 s de lecture, +0,2 tour ×
 12 rencontres × 7,6 s = +18 s, −0,4 tour × 8 rencontres × 7,6 s = −24 s. **Net : environ −40 s
 par run.** Le paquet est légèrement favorable au budget, ce qui est contre-intuitif et mérite
 d'être vérifié plutôt que cru.
 
 **Si la mesure dit que les combats normaux passent au-dessus de 6,5 tours**, le correctif n'est
 pas de rendre le pas gratuit : c'est de baisser de 10 à 15 % les budgets de PV ennemis de
-`run.md` § 5.2, qui sont marqués **[T]**. Je le note ici pour que ce réflexe soit écrit avant que
+`run.md` § 5.2 — désormais repris et affiné par `progression-designer` (D36, table des valeurs de
+survie) —, qui sont marqués **[T]**. Je le note ici pour que ce réflexe soit écrit avant que
 la mesure ne tombe.
 
 ---
@@ -263,14 +266,14 @@ ajouter, tous purs, aucun appel au RNG (I1) :
 
 ```ts
 // dans RuleSet
-/** D34. 1 = règle historique, 0 = tout déplacement se paie. Cible : 0. */
+/** D44. 1 = règle historique, 0 = tout déplacement se paie. Cible : 0. */
 freeStepsPerTurn: number;
 
-/** D36. Force la forme de tous les motifs d'attaque, quelle que soit celle du type
+/** D46. Force la forme de tous les motifs d'attaque, quelle que soit celle du type
  *  d'ennemi. `null` = chaque type utilise sa propre forme. Levier de contrôle. */
 attackShapeOverride: "single" | "lunge" | "line3" | null;
 
-/** D37. Cerveau des types `melee`. "approach" = se déplacer OU attaquer (historique),
+/** D47. Cerveau des types `melee`. "approach" = se déplacer OU attaquer (historique),
  *  "charge" = se déplacer PUIS attaquer dans le même tour. */
 meleeBrain: "approach" | "charge";
 ```
@@ -278,7 +281,7 @@ meleeBrain: "approach" | "charge";
 Et un champ sur `EnemyType` :
 
 ```ts
-/** D36. Défaut "single" : les types existants ne changent pas de comportement. */
+/** D46. Défaut "single" : les types existants ne changent pas de comportement. */
 shape: "single" | "lunge" | "line3";
 ```
 
@@ -316,13 +319,13 @@ appariée), contenu réel de l'acte 1, remplisseurs identiques ailleurs.
 | **R** | 1 | tout `single` | `approach` | Référence, reproduit la mesure du 2026-08-31 |
 | **A** | **0** | tout `single` | `approach` | Piste 1 seule |
 | **C** | 1 | tout `single` | **`charge`** | Piste 3 seule |
-| **D** | 1 | roster D36 | `approach` | Motifs seuls |
-| **E** | **0** | roster D36 | `approach` | **Paquet recommandé, acte 1** |
-| **F** | **0** | roster D36 | **`charge`** | **Paquet recommandé, actes 2-3** |
+| **D** | 1 | roster D46 | `approach` | Motifs seuls |
+| **E** | **0** | roster D46 | `approach` | **Paquet recommandé, acte 1** |
+| **F** | **0** | roster D46 | **`charge`** | **Paquet recommandé, actes 2-3** |
 
-Roster D36 : Rôdeur `single`, Guetteur `line3`, Bélier `lunge` (justification en § 6).
+Roster D46 : Rôdeur `single`, Guetteur `line3`, Bélier `lunge` (justification en § 6).
 
-La piste 2 (D35) n'est pas une variante mécanique séparée : c'est E pour les runs qui n'ont pas la
+La piste 2 (D45) n'est pas une variante mécanique séparée : c'est E pour les runs qui n'ont pas la
 relique, et R pour celles qui l'ont. Elle se mesurera avec les reliques, pas ici. Ce que cette
 campagne doit lui fournir, c'est l'écart R↔E : **c'est la puissance exacte de la relique.**
 
@@ -345,14 +348,14 @@ fausses :
 
 1. **A ne suffit pas.** Je prédis que supprimer le pas gratuit laisse plus d'un tiers des runs à
    zéro dégât, parce que l'esquive reste une immunité, simplement payante. **Si `runs0` sous A
-   tombe sous 5 %, j'ai tort et D36 devient facultative** — je ne garderais alors que `lunge` sur
+   tombe sous 5 %, j'ai tort et D46 devient facultative** — je ne garderais alors que `lunge` sur
    le Bélier, pour la saveur.
 2. **C est inerte.** Je prédis que la piste 3 ne change les dégâts d'aucune quantité mesurable, et
    qu'elle raccourcit les combats de ~0,4 tour. **Si `pv/renc` sous C dépasse 1,0, j'ai tort** et
    la piste 3 est un vrai correctif défensif, pas seulement un correctif de rythme.
 3. **D seule fait couler du sang, et ce n'est pas suffisant pour autant.** Je prédis `runs0` sous
-   10 % dès les motifs seuls. Si c'est le cas, quelqu'un dira que D34 est désormais inutile.
-   **Ma réponse est écrite d'avance et la mesure ne peut pas la trancher** : D34 ne répond pas à
+   10 % dès les motifs seuls. Si c'est le cas, quelqu'un dira que D44 est désormais inutile.
+   **Ma réponse est écrite d'avance et la mesure ne peut pas la trancher** : D44 ne répond pas à
    « le joueur prend-il des dégâts », mais à « le tour contient-il une décision ». Une action
    gratuite, toujours disponible et toujours utile n'est pas une décision, même dans un jeu où
    l'on saigne. Le propriétaire peut me surclasser sur ce point ; il le fera en connaissance de
@@ -367,14 +370,14 @@ A1 rang 1, 5 pour A1 rang 3) :
 - `pv/renc` en acte 1 entre 2,0 et 4,0
 - `tours/renc` des combats normaux ≤ 6,5
 - `secours` entre 12 % et 30 % — au-dessus de 30 %, un tiers des dés du jeu servent à marcher et
-  les faces perdent leur sens ; c'est alors D34 qu'il faut revoir, ou la portée de la Frappe
+  les faces perdent leur sens ; c'est alors D44 qu'il faut revoir, ou la portée de la Frappe
 
 ### 5.5 Réserve méthodologique — la politique gloutonne doit être rendue neutre
 
 **La mesure telle quelle comparerait des poids, pas des règles.** Le barème de
 `packages/sim/src/policy.ts` a été calibré sous R : une esquive payée y vaut 3, une Frappe non
 létale 10. Sous la variante A, cette IA ne fuira jamais tant qu'une Frappe est possible, et
-encaissera des dégâts qu'un joueur humain n'encaisserait pas. Elle rendrait D34 artificiellement
+encaissera des dégâts qu'un joueur humain n'encaisserait pas. Elle rendrait D44 artificiellement
 efficace, exactement de la façon dont on ne veut pas se tromper.
 
 Avant la campagne, le barème doit être exprimé dans **une seule monnaie : les points de vie**, ce
@@ -404,7 +407,7 @@ Appliquées dans le même passage. Résumé pour relecture :
 
 | § | Modification |
 |---|---|
-| en-tête | Statut v1.1, renvoi à ce document, D34-D37 |
+| en-tête | Statut v1.1, renvoi à ce document, D44-D47 |
 | 2.1 | `player.freeStepUsed` retiré de l'état persisté |
 | 3, phase 0 | l'item 4 (`freeStepUsed = false`) disparaît |
 | 3, phase 3 | la ligne « Pas gratuit » du tableau des entrées disparaît |
@@ -438,19 +441,19 @@ Aucun nouvel ennemi, aucun nouveau chiffre de dégâts : la modification est gé
 
 ## 7. Ce que je laisse ouvert
 
-- **Propriétaire** : consigner D34-D37 en partie 1 de `docs/06-arbitrages.md`, et corriger la
+- **Propriétaire** : consigner D44-D47 en partie 1 de `docs/06-arbitrages.md`, et corriger la
   formulation de D30 (elle *contient* la garantie de D18, elle ne l'*étend* pas).
 - **`balance-simulator`** : le barème en points de vie du § 5.5, la campagne R/A/C/D/E/F, et une
   régression permanente sur `runs0` — si `runs0` remonte au-dessus de 5 % après une session de
   contenu, une relique a recréé l'immunité.
-- **`item-designer`** : la relique portant la permission « pas gratuit » (D35), tier explosif,
-  non publiable avant D36. Et le fait que D34 revalorise mécaniquement toute relique de mobilité :
+- **`item-designer`** : la relique portant la permission « pas gratuit » (D45), tier explosif,
+  non publiable avant D46. Et le fait que D44 revalorise mécaniquement toute relique de mobilité :
   le prix de référence de la mobilité a changé, il faut le recalibrer.
 - **`mobile-ux`** : la lisibilité d'un `line3` sur 5 colonnes, et surtout **la distinction visuelle
   entre une case menacée et une case libre quand il n'en reste que deux**. C'est le moment où le
   joueur doit lire vite et où une erreur de lecture coûte 3 PV. Mon budget de lecture est +0,2 s ;
   si le rendu demande davantage, c'est la forme `line3` qui saute, pas le budget.
-- **`progression-designer`** : D34 augmente la pression sur le `pool`. Un pool riche en Élan
+- **`progression-designer`** : D44 augmente la pression sur le `pool`. Un pool riche en Élan
   devient une réponse défensive, ce qui n'était pas vrai hier. La courbe de DPT de `run.md` § 5.2
   suppose 3 dés offensifs par tour ; elle en suppose désormais ~2,5 en présence de menaces.
 - **Non tranché volontairement** : les formes des ennemis des actes 2 et 3. Règle de production

@@ -4,7 +4,7 @@
 > Cadre : D10-D22 de `docs/06-arbitrages.md`, invariants I1-I5 de `docs/02-systemes-v0.md`.
 > **v1.1 (2026-08-31)** : le pas gratuit est supprimé, les motifs d'attaque suivent une
 > grammaire à trois formes, `charge` devient le cerveau de mêlée par défaut à partir de
-> l'acte 2. Décisions D34 à D37, argumentées dans `docs/design/esquive-arbitrage.md`, qui
+> l'acte 2. Décisions D44 à D47, argumentées dans `docs/design/esquive-arbitrage.md`, qui
 > porte aussi le protocole de mesure et l'interrupteur de comparaison.
 > Ce document est le contrat entre le design, `packages/core` et `balance-simulator`.
 > Tout chiffre marqué **[T]** est un paramètre de tuning : il peut bouger sans que la règle
@@ -105,20 +105,20 @@ recyclage n'est jamais partiel et n'a pas de coût.
 Les dés conservés au tour précédent sont déjà dans la Main et **ne sont pas relancés**
 (D12). Ils gardent la face qu'ils montraient.
 
-### Phase 2 — Lecture (0 geste, ~1,5 s)
+### Phase 2 — Lecture (0 geste, ~1,7 s)
 Les intentions sont déjà affichées : elles ont été calculées à la fin du tour précédent
 (phase 5), donc elles sont visibles pendant toute l'animation de résolution. Aucune
 information n'apparaît en phase 2 ; elle n'existe que dans le budget de temps.
 
-### Phase 3 — Choix (2 à 4 décisions, ~4,5 s)
-Le joueur compose une **séquence ordonnée** d'actions. Trois types d'entrée :
+### Phase 3 — Choix (2 à 4 décisions, ~3,6 s)
+Le joueur compose une **séquence ordonnée** d'actions. Deux types d'entrée :
 
 | Entrée | Geste | Contrainte |
 |---|---|---|
 | Dépense | drag d'un dé de la Main vers une case cible | la cible doit être légale (§ 5) |
 | Conservation | tap sur un dé de la Main | 2 au plus (D12) |
 
-Il n'y a **aucune entrée gratuite** (D34) : se déplacer d'une case est une dépense de dé
+Il n'y a **aucune entrée gratuite** (D44) : se déplacer d'une case est une dépense de dé
 comme une autre (§ 5.5). Une relique peut accorder une entrée gratuite ; le jeu de base n'en
 contient pas.
 
@@ -244,6 +244,12 @@ Résolution précise :
 Élan est la seule réponse de base à un mur de corps et le seul moyen de traverser la moitié de
 la grille en un dé. Il est à 1/6 pour cette raison : quand on en tire un, c'est un événement.
 
+Depuis D44 et D46, il gagne un troisième rôle qui n'était pas prévu et qu'on garde : **c'est la
+sortie de secours d'une tenaille**. Quand deux motifs ferment les quatre voisines (§ 9), aucun
+pas d'une case ne sauve ; un Élan, si. Cela renforce son statut d'événement au lieu de le
+diluer, et cela fait d'un `pool` riche en Élan une orientation défensive — ce qui n'était pas
+vrai hier, et que `progression-designer` doit intégrer à sa courbe.
+
 ### Éclat — le joker (0 face au départ, s'obtient)
 > **Éclat.** Au moment de la dépense, choisis Frappe, Garde ou Élan. Le dé exécute cette
 > action. Pour tous les combos et tous les crochets de relique, l'Éclat **compte comme la face
@@ -262,7 +268,7 @@ visible sur le dé posé. Coût en temps : +0,4 s sur les tours avec Éclat, acc
 > **Tout dé, quelle que soit sa face, peut être dépensé pour un déplacement d'une case
 > orthogonale**, à la place de son action.
 
-Depuis D34, ce n'est plus un filet de sécurité : **c'est le verbe de déplacement du jeu**. Se
+Depuis D44, ce n'est plus un filet de sécurité : **c'est le verbe de déplacement du jeu**. Se
 placer coûte un dé, exactement comme frapper ou se garder. C'est ce qui fait de la position une
 monnaie, et de l'esquive un arbitrage plutôt qu'un réflexe. Un tour peut être entièrement
 converti en mobilité (3 dés = 3 cases, ou 5 avec un Élan).
@@ -294,7 +300,7 @@ tiers « explosive » (`docs/03-content-budget.md`), sous surveillance du simula
 | Dépense de secours (§ 5.5) | 1 case orthogonale | 1 dé, autant qu'on en a | non |
 | Élan | 2 ou 3 cases, un seul axe | 1 dé | oui, 1 dégât par ennemi traversé |
 | Poussée (subie) | 1 case, direction imposée | — | non |
-| *Pas gratuit* (permission de relique, D35) | 1 case orthogonale | gratuit, **1 fois par tour au total** | non |
+| *Pas gratuit* (permission de relique, D45) | 1 case orthogonale | gratuit, **1 fois par tour au total** | non |
 
 Ce qui bloque un déplacement d'une case : le bord de la grille, une unité, un `blocker`.
 Ce qui bloque un Élan : rien sur le chemin (il traverse) ; seule la case d'arrivée doit être
@@ -304,8 +310,8 @@ Tout déplacement est une **entrée de la séquence**, au même titre qu'une fra
 frapper, puis se déplacer, puis frapper depuis la nouvelle position — au prix d'un dé par
 déplacement.
 
-**Le pas gratuit n'existe plus dans le jeu de base (D34).** Il subsiste comme *permission*
-accordée par une relique de tier explosif (D35). Cette permission est plafonnée à **un seul pas
+**Le pas gratuit n'existe plus dans le jeu de base (D44).** Il subsiste comme *permission*
+accordée par une relique de tier explosif (D45). Cette permission est plafonnée à **un seul pas
 gratuit par tour, toutes sources confondues** : deux reliques n'en donnent jamais deux. Le pas
 gratuit ne compte pour aucun combo, n'émet pas `DIE_SPENT`, ne se fractionne pas et ne se
 reporte pas d'un tour à l'autre ; non consommé, il est perdu.
@@ -368,7 +374,7 @@ protéger un allié, interdire du terrain. Quatre verbes, chacun lisible en une 
 d'autre n'entre en v1 — pas d'invocation, pas de soin, pas de buff de dégâts : chacun de ces
 trois-là allonge le combat, et le combat n'a que 40 secondes.
 
-### 8.1 bis — La grammaire des motifs (D36)
+### 8.1 bis — La grammaire des motifs (D46)
 
 `pattern` n'est pas écrit à la main ennemi par ennemi. Chaque type porte une **forme**, et le
 moteur en dérive les offsets **au moment du télégraphe**. Trois formes, liste fermée en v1.
@@ -422,10 +428,17 @@ tactique offerte au joueur, et elle est visible en direct pendant la phase de ch
 
 **Le motif de cases est figé au moment du télégraphe. L'ancre suit l'unité.**
 
-Concrètement : le Guetteur qui vise le joueur trois cases au sud mémorise l'offset `(0, +3)`,
-pas la case absolue. Si le joueur bouge, le tir part quand même sur `(0, +3)` et tombe dans le
-vide — **esquiver est la défense principale du jeu**. Si le Guetteur est poussé d'une case, tout
-son motif se décale d'une case avec lui.
+Concrètement : le Guetteur qui vise le joueur trois cases au sud mémorise les offsets
+`(0, +2) (0, +3) (0, +4)` — sa forme `line3` déjà dérivée (§ 8.1 bis) — et non des cases
+absolues. Si le joueur sort de la ligne, le tir part quand même sur ces trois offsets et tombe
+dans le vide : **esquiver reste la défense principale du jeu**. Mais la forme dit désormais
+*où* : reculer d'une case le long de la ligne ne sert à rien, seule la perpendiculaire sauve.
+Si le Guetteur est poussé d'une case, tout son motif se décale d'une case avec lui.
+
+C'est la conjonction voulue depuis D44 et D46 : l'esquive reste la réponse, elle a un coût (un
+dé) et elle a une bonne et une mauvaise direction. Tant que les motifs faisaient une case et que
+le pas était gratuit, elle n'avait ni l'un ni l'autre — voir
+`docs/design/esquive-arbitrage.md` § 2.
 
 Cette règle est compatible avec le pilier « zéro information cachée » **uniquement parce que la
 résolution est différée** : les cases surlignées se recalculent en direct pendant la phase de
@@ -457,7 +470,7 @@ Marche d'une case « vers le joueur » :
 Pas de recherche de chemin. Un ennemi se laisse bloquer par un corps : c'est une tactique du
 joueur, pas un bug.
 
-### 8.5 Le cerveau de mêlée (D37)
+### 8.5 Le cerveau de mêlée (D47)
 
 Deux cerveaux de mêlée, sélectionnés par type d'ennemi.
 
@@ -481,7 +494,7 @@ de faire mal.
 (le joueur se déplace et agit, l'ennemi faisait l'un ou l'autre) et le tour perdu au
 réengagement après une esquive, ce qui rend environ 0,4 tour par combat. Elle **ne corrige pas**
 l'esquive : une `charge` reste télégraphiée sur une case précise et reste esquivable d'un pas.
-Le correctif de l'esquive est D36, pas D37.
+Le correctif de l'esquive est D46, pas D47.
 
 ---
 
@@ -697,7 +710,7 @@ Soit `S = [f₁, f₂, ..., fₙ]` la séquence des **faces effectives** des dé
 dans l'ordre de pose. La face effective d'un Éclat est la face choisie à la pose. Une dépense
 qui fait long feu (§ 10.5) entre dans `S`. Une **dépense de secours** (§ 5.5) entre dans `S`
 avec sa propre face — c'est ce qui fait qu'un tour de repositionnement peut quand même produire
-un combo. Un pas gratuit accordé par relique (D35) n'entre **pas** dans `S`, puisqu'aucun dé
+un combo. Un pas gratuit accordé par relique (D45) n'entre **pas** dans `S`, puisqu'aucun dé
 n'est dépensé.
 
 | Combo | Définition |
@@ -838,8 +851,8 @@ tour complet, résolution comprise**, avec 2 à 4 décisions.
 |---|---|---|
 | 0 — Début de tour | 0,0 s | aucune décision, aucune animation bloquante |
 | 1 — Tirage | 0,5 s | un événement aléatoire (D20), animation interruptible au tap |
-| 2 — Lecture | **1,7 s** | +0,2 s depuis D36 : 2 ou 3 cases surlignées sur ~70 % des tours |
-| 3 — Choix : 3 dépenses | 3,3 s | 1,1 s par drag, déplacements compris (D34) |
+| 2 — Lecture | **1,7 s** | +0,2 s depuis D46 : 2 ou 3 cases surlignées sur ~70 % des tours |
+| 3 — Choix : 3 dépenses | 3,3 s | 1,1 s par drag, déplacements compris (D44) |
 | 3 — Choix : conservation | 0,3 s | 0 tap par défaut, 1 tap quand on conserve |
 | 4 — Validation | 0,3 s | un tap, bouton fixe |
 | 5 — Résolution | **1,5 s** | joueur ~0,6 s + ennemis ~0,9 s, plafond dur 2,0 s |
@@ -847,7 +860,7 @@ tour complet, résolution comprise**, avec 2 à 4 décisions.
 | **Total** | **7,6 s** | |
 
 **0,4 s de marge sur le contrat de 8,0 s** — la première que ce document ait jamais eue, rendue
-par la suppression du pas gratuit (D34). Elle n'est allouée à personne : c'est la réserve qui
+par la suppression du pas gratuit (D44). Elle n'est allouée à personne : c'est la réserve qui
 absorbe les dépassements de résolution. Trois exigences restent en vigueur, et ce sont des
 exigences de développement, pas des vœux :
 - toute animation est interruptible au tap et l'état saute à sa fin ;
@@ -860,7 +873,9 @@ exigences de développement, pas des vœux :
 | Règle | Coût par tour | Coût par run | Verdict |
 |---|---|---|---|
 | Conservation (D12) | +0,3 s | +18 s | **gardée** : c'est la tension centrale de la boucle de tour |
-| Pas gratuit (D18) | +0,6 s | +36 s | **gardé** : imposé par D18, et il rend le télégraphe intéressant |
+| Pas gratuit (D18) | +0,6 s | +36 s | **supprimé (D44)** : utilisé ~100 % des tours sous jeu compétent, jamais arbitré, et à l'origine de l'immunité mesurée le 2026-08-31. Alternative écartée : le rendre conditionnel, ce qui ferait dépendre la légalité d'une entrée de l'ordre des entrées |
+| Motifs à 2-3 cases (D46) | +0,2 s de lecture | +14 s | **adoptés** : seul levier qui fasse échouer une esquive. Alternative écartée : le motif en croix, qui la supprime au lieu de la conditionner |
+| `charge` en actes 2-3 (D47) | 0,0 s de décision | **−24 s** | **adoptée** : supprime le tour perdu au réengagement, des deux côtés. Ce n'est pas un correctif d'esquive |
 | Choix de distance de l'Élan (2 ou 3) | +0,4 s, ~1 tour sur 3 | +8 s | **gardé** : sans le choix de distance, Élan ne peut plus se poser précisément, et il perd sa raison d'être. Alternative écartée : Élan toujours de 3 cases |
 | Choix de face de l'Éclat | +0,4 s sur les tours à Éclat | +6 s | **gardé** : c'est toute la valeur de la face |
 | Ordre des dépenses (combos) | **0,0 s** | 0 s | l'ordre est celui de la pose, l'annulation est LIFO. Aucune UI de tri |
@@ -869,6 +884,25 @@ exigences de développement, pas des vœux :
 
 Sans la portée 2 de la Frappe, la somme ci-dessus sort du budget. C'est l'arbitrage central de
 ce document.
+
+### Effet du paquet D44-D47 sur le nombre de tours
+
+Prédiction, à confronter à la campagne de mesure de `esquive-arbitrage.md` § 5 :
+
+| | Combat normal, acte 1 | Combat normal, actes 2-3 |
+|---|---|---|
+| Avant (mesuré : 6,6 tours/rencontre tous types confondus) | ~5,5 | ~5,5 |
+| D44 : le déplacement se paie | +0,4 | +0,4 |
+| D46 : les tenailles forcent la Garde | +0,2 | +0,2 |
+| D47 : plus de tour perdu au réengagement | — | −0,4 |
+| **Après** | **6,1 tours ≈ 46 s** | **5,7 tours ≈ 43 s** |
+
+L'acte 1 est le point tendu : 46 s contre un contrat de 40 s, soit +15 %, sous le seuil d'alerte
+de +20 % de `docs/01-boucle-et-pacing.md`. **Si la mesure dépasse 6,5 tours pour un combat
+normal, le correctif est de baisser de 10 à 15 % les budgets de PV ennemis (`run.md` § 5.2,
+repris par `progression.md` sous D36) —
+qui sont marqués [T] — et non de restaurer le pas gratuit.** Ce réflexe est écrit avant la mesure
+pour qu'il ne soit pas négocié après.
 
 ---
 
@@ -879,11 +913,19 @@ ce document.
   recommandation que la relique signature du personnage de départ s'accroche à **Paire** —
   c'est ce qui enseigne les combos sans écran de tutoriel.
 - **`item-designer`** : le format de la donnée d'effet (A10), les prix, la distribution des
-  raretés, et deux permissions à traiter comme des reliques « explosives » : *dépenser un dé
-  sans cible* (§ 5.5) et *poser une deuxième dépense de secours gratuite*.
+  raretés, et trois permissions à traiter comme des reliques « explosives » : *dépenser un dé
+  sans cible* (§ 5.5), *poser une dépense de secours gratuite*, et surtout **le pas gratuit
+  (D45)** — texte imposé, plafonné à 1 par tour toutes sources confondues, et **non publiable
+  tant que D46 n'est pas en place**, faute de quoi c'est une relique d'invulnérabilité. Noter
+  aussi que D44 revalorise mécaniquement toute relique de mobilité : le prix de référence de la
+  mobilité a changé.
 - **`balance-simulator`** : mesurer les déclenchements par tour (alerte p99 > 12), la durée de
-  tour réelle, le nombre de tours par rencontre, et faire varier le plafond de conservation
-  (D12) qui reste le premier curseur du système.
+  tour réelle, le nombre de tours par rencontre, faire varier le plafond de conservation (D12)
+  qui reste le premier curseur du système, et **conduire la campagne R/A/C/D/E/F de
+  `esquive-arbitrage.md` § 5** avec le barème en points de vie du § 5.5. Régression permanente à
+  installer : la part des runs terminées sans perdre un PV doit rester **sous 5 %**.
 - **`mobile-ux`** : la zone de drop d'un Élan (8 destinations surlignées est le maximum que je
   m'autorise ; si le pouce ne suit pas, il faudra passer à un sélecteur de direction en deux
-  temps, et ça coûtera 0,4 s de plus par Élan).
+  temps, et ça coûtera 0,4 s de plus par Élan). Et, depuis D46, **la lisibilité d'un `line3` sur
+  5 colonnes** : mon budget de lecture est +0,2 s ; si le rendu en demande davantage, c'est la
+  forme `line3` qui saute, pas le budget.
