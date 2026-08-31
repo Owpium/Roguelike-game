@@ -1,6 +1,5 @@
 import { eq, inGrid, translate, type Cell, type Dir, DIR_VECTOR } from "./geometry.ts";
 import type { CombatState, GameEvent, Unit } from "./types.ts";
-import { RULES } from "./rules.ts";
 
 export type TargetRef = number | "player";
 
@@ -105,5 +104,5 @@ export function push(
     setCell(next);
   }
   log.push({ t: "UNIT_PUSHED", unitId: target, from, to: getCell(), blocked });
-  if (blocked) applyDamage(state, target, RULES.pushBlockedDamage, source, log);
+  if (blocked) applyDamage(state, target, state.rules.pushBlockedDamage, source, log);
 }

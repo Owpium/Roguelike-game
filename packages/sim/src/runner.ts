@@ -46,7 +46,7 @@ export function simulateRun(seed: number, content: RunContent): RunResult {
     encounters += 1;
     let combat = run.combat!;
     let safety = 0;
-    while (combat.phase === "choice" && safety < RULES.maxTurns + 2) {
+    while (combat.phase === "choice" && safety < (content.rules ?? RULES).maxTurns + 2) {
       combat = playTurn(combat, content.types);
       turns += 1;
       safety += 1;

@@ -2,6 +2,7 @@ import { PLAYER_START } from "./geometry.ts";
 import { createCombat, type Encounter } from "./combat.ts";
 import { nextInt, type RngState } from "./rng.ts";
 import type { CombatState, Die, EnemyType } from "./types.ts";
+import { RULES, type RuleSet } from "./rules.ts";
 
 /**
  * La structure de run (docs/design/run.md).
@@ -31,6 +32,8 @@ export interface RunContent {
   bosses: Encounter[];
   types: Record<string, EnemyType>;
   startingPool: Die[];
+  /** Variante de règles appliquée à tous les combats de la run. */
+  rules?: RuleSet;
 }
 
 export interface RunState {
@@ -138,6 +141,7 @@ export function enterNode(run: RunState, index: number, content: RunContent): Ru
       encounter: findEncounter(content, node.encounterId!),
       types: content.types,
       playerStart: PLAYER_START,
+      rules: content.rules ?? RULES,
     });
     // Le combat possède désormais le curseur du RNG : la run le récupère à la sortie.
     state.status = "fighting";

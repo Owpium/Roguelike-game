@@ -1,6 +1,5 @@
 import {
   DIR_VECTOR,
-  RULES,
   eq,
   findUnit,
   inGrid,
@@ -89,12 +88,12 @@ function scoreEntry(state: CombatState, entry: LegalEntry): number {
       const target = findUnit(view, action.action.targetId);
       if (!target) return 0;
       // Achever une unité vaut davantage que d'entamer : un ennemi mort n'agit plus.
-      return target.hp <= RULES.strikeDamage ? 14 : 10;
+      return target.hp <= view.rules.strikeDamage ? 14 : 10;
     }
     case "guard": {
       const incoming = incomingDamage(view);
       if (incoming === 0) return 0;
-      return Math.min(incoming, RULES.guardShield) >= RULES.guardShield ? 7 : 4;
+      return Math.min(incoming, view.rules.guardShield) >= view.rules.guardShield ? 7 : 4;
     }
     case "surge": {
       const { dir, distance } = action.action;
@@ -105,7 +104,7 @@ function scoreEntry(state: CombatState, entry: LegalEntry): number {
           dy: DIR_VECTOR[dir].dy * step,
         });
         const unit = view.units.find((u) => eq(u.cell, c));
-        if (unit && unit.hp <= RULES.surgeTrampleDamage) killed += 1;
+        if (unit && unit.hp <= view.rules.surgeTrampleDamage) killed += 1;
       }
       const arrival = translate(view.player.cell, {
         dx: DIR_VECTOR[dir].dx * distance,

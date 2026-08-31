@@ -1,5 +1,6 @@
 import type { Cell, Dir, Offset } from "./geometry.ts";
 import type { RngState } from "./rng.ts";
+import type { RuleSet } from "./rules.ts";
 
 /**
  * Vocabulaire (CLAUDE.md) : Pool / Main / Face / Dépense / Relique / Intention côté joueur,
@@ -100,6 +101,8 @@ export type Phase = "choice" | "won" | "lost";
 
 export interface CombatState {
   rng: RngState;
+  /** Les règles en vigueur pour ce combat. Le simulateur les fait varier. */
+  rules: RuleSet;
   turn: number;
   phase: Phase;
   player: Player;

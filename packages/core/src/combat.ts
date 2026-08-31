@@ -10,7 +10,7 @@ import {
 import { applyDamage, assertOccupancy, findUnit, isFree, removeDying, push, unitAt } from "./board.ts";
 import { computeIntent, hasClearLine } from "./intents.ts";
 import { detectCombos } from "./combos.ts";
-import { RULES } from "./rules.ts";
+import { RULES, type RuleSet } from "./rules.ts";
 import { nextInt, type RngState } from "./rng.ts";
 import type {
   CombatState,
@@ -36,6 +36,8 @@ export interface Encounter {
 
 export interface CombatSetup {
   rng: RngState;
+  /** Variante de règles. Par défaut, celles de `docs/design/combat.md`. */
+  rules?: RuleSet;
   pool: Die[];
   hp: number;
   hpMax: number;
@@ -67,6 +69,7 @@ export function createCombat(setup: CombatSetup): CombatState {
 
   const state: CombatState = {
     rng: clone(setup.rng),
+    rules: setup.rules ?? RULES,
     turn: 0,
     phase: "choice",
     player: { cell: setup.playerStart, hp: setup.hp, hpMax: setup.hpMax, shield: 0 },
@@ -107,7 +110,7 @@ function refreshIntents(state: CombatState, types: Record<string, EnemyType>): v
  * par dé. Le `pool` reste donc bien un multiset, jamais une pile ordonnée (I5).
  */
 function drawAndRoll(state: CombatState, log: GameEvent[]): void {
-  const missing = RULES.handSize - state.hand.length;
+  const missing = state.rules.handSize - state.hand.length;
   if (missing <= 0) return;
 
   const drawn: Die[] = [];
@@ -133,7 +136,7 @@ function drawAndRoll(state: CombatState, log: GameEvent[]): void {
 
 function beginTurn(state: CombatState, log: GameEvent[]): void {
   state.turn += 1;
-  state.triggerBudget = RULES.triggerBudgetPerTurn;
+  state.triggerBudget = state.rules.triggerBudgetPerTurn;
   state.triggersBySource = {};
   log.push({ t: "TURN_START", turn: state.turn });
   drawAndRoll(state, log);
@@ -143,8 +146,12 @@ function beginTurn(state: CombatState, log: GameEvent[]): void {
 
 /* ------------------------------------------------------------------ légalité */
 
-export function freeStepUsed(state: CombatState): boolean {
-  return state.pendingActions.some((a) => a.kind === "free_step");
+export function freeStepsTaken(state: CombatState): number {
+  return state.pendingActions.filter((a) => a.kind === "free_step").length;
+}
+
+export function freeStepAvailable(state: CombatState): boolean {
+  return freeStepsTaken(state) < state.rules.freeStepsPerTurn;
 }
 
 export function keptCount(state: CombatState): number {
@@ -185,7 +192,7 @@ export function legalEntries(state: CombatState): LegalEntry[] {
   const view = project(state);
   const out: LegalEntry[] = [];
 
-  if (!freeStepUsed(state)) {
+  if (freeStepAvailable(state)) {
     for (const dir of ["up", "right", "down", "left"] as Dir[]) {
       if (isFree(view, translate(view.player.cell, DIR_VECTOR[dir]))) {
         out.push({ action: { kind: "free_step", dir }, label: `pas ${dir}` });
@@ -219,14 +226,14 @@ export function legalEntries(state: CombatState): LegalEntry[] {
 
       if (effective === "surge") {
         for (const dir of ["up", "right", "down", "left"] as Dir[]) {
-          for (const distance of RULES.surgeDistances) {
+          for (const distance of state.rules.surgeDistances) {
             const arrival = translate(view.player.cell, {
               dx: DIR_VECTOR[dir].dx * distance,
               dy: DIR_VECTOR[dir].dy * distance,
             });
             if (isFree(view, arrival)) {
               out.push({
-                action: { ...base, action: { type: "surge", dir, distance } },
+                action: { ...base, action: { type: "surge", dir, distance: distance as 2 | 3 } },
                 label: `élan ${dir} ${distance}`,
               });
             }
@@ -280,7 +287,7 @@ function resolveSurge(state: CombatState, dir: Dir, distance: number, log: GameE
   for (const c of path) {
     const victim = unitAt(state, c);
     if (victim) {
-      applyDamage(state, victim.id, RULES.surgeTrampleDamage, "player", log);
+      applyDamage(state, victim.id, state.rules.surgeTrampleDamage, "player", log);
       removeDying(state, log);
     }
   }
@@ -302,12 +309,12 @@ function applySpend(state: CombatState, action: SpendAction, log: GameEvent[]): 
       // § 10.5 : une dépense dont la cible a disparu fait long feu. Le dé est bel et bien
       // dépensé et compte pour les combos — surtuer ne doit pas casser un combo.
       if (!target) return;
-      applyDamage(state, target.id, RULES.strikeDamage, "player", log);
+      applyDamage(state, target.id, state.rules.strikeDamage, "player", log);
       return;
     }
     case "guard":
-      state.player.shield += RULES.guardShield;
-      log.push({ t: "SHIELD_GAINED", unitId: "player", amount: RULES.guardShield });
+      state.player.shield += state.rules.guardShield;
+      log.push({ t: "SHIELD_GAINED", unitId: "player", amount: state.rules.guardShield });
       return;
     case "surge":
       resolveSurge(state, action.dir, action.distance, log);
@@ -398,7 +405,7 @@ export function reduce(
         if (!die || die.kept || spentDieIds(state).has(entry.dieId)) {
           return { state: previous, log: [] };
         }
-      } else if (freeStepUsed(state)) {
+      } else if (!freeStepAvailable(state)) {
         return { state: previous, log: [] };
       }
       state.pendingActions.push(entry);
@@ -406,7 +413,7 @@ export function reduce(
     }
 
     case "KEEP": {
-      if (keptCount(state) >= RULES.keepCap) return { state: previous, log: [] };
+      if (keptCount(state) >= state.rules.keepCap) return { state: previous, log: [] };
       if (spentDieIds(state).has(action.dieId)) return { state: previous, log: [] };
       const die = state.hand.find((d) => d.dieId === action.dieId);
       if (die) die.kept = true;
@@ -480,7 +487,7 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
   // 5. Fin de tour.
   endTurnBookkeeping(state, log, types, { skipIntents: false });
 
-  if (state.turn >= RULES.maxTurns) return lose(state, log);
+  if (state.turn >= state.rules.maxTurns) return lose(state, log);
 
   beginTurn(state, log);
   state.lastTurnLog = log;

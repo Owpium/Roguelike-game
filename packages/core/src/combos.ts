@@ -1,5 +1,5 @@
 import type { Combo, Face } from "./types.ts";
-import { RULES } from "./rules.ts";
+import { COMBO_ORDER } from "./rules.ts";
 
 /**
  * Contrat de combo (docs/design/combat.md § 11, point A20).
@@ -35,5 +35,5 @@ export function detectCombos(sequence: readonly EffectiveFace[]): Combo[] {
 
   // Ordre canonique : il rend le résultat reproductible quand plusieurs reliques
   // s'accrochent à plusieurs combos. C'est une règle, pas une convention d'affichage.
-  return RULES.comboOrder.filter((combo) => found.has(combo));
+  return COMBO_ORDER.filter((combo) => found.has(combo));
 }
