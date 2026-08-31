@@ -1,7 +1,11 @@
 # Combat — règles complètes
 
-> Agent responsable : `game-designer`. Statut : **v1, implémentable**.
+> Agent responsable : `game-designer`. Statut : **v1.1, implémentable**.
 > Cadre : D10-D22 de `docs/06-arbitrages.md`, invariants I1-I5 de `docs/02-systemes-v0.md`.
+> **v1.1 (2026-08-31)** : le pas gratuit est supprimé, les motifs d'attaque suivent une
+> grammaire à trois formes, `charge` devient le cerveau de mêlée par défaut à partir de
+> l'acte 2. Décisions D34 à D37, argumentées dans `docs/design/esquive-arbitrage.md`, qui
+> porte aussi le protocole de mesure et l'interrupteur de comparaison.
 > Ce document est le contrat entre le design, `packages/core` et `balance-simulator`.
 > Tout chiffre marqué **[T]** est un paramètre de tuning : il peut bouger sans que la règle
 > change. Tout chiffre non marqué est une règle.
@@ -43,7 +47,6 @@ Pas d'obstacles de décor en v0. Le moteur réserve la notion (une case peut por
 | `player.hp`, `player.hpMax` | PV courants et maximum. **Traversent le combat et la run** |
 | `player.case` | Case occupée |
 | `player.shield` | Bouclier courant. Remis à 0 en fin de tour |
-| `player.freeStepUsed` | Le pas gratuit a-t-il été consommé ce tour |
 | `pool` | Multiset des dés non encore tirés ce combat |
 | `discard` | Multiset des dés dépensés ou défaussés |
 | `hand` | Liste ordonnée de dés en main : `{ dieId, face, kept }` |
@@ -85,7 +88,8 @@ Six phases. Le point de non-retour est le tap sur **Valider**, et nulle part ail
 1. `triggerBudget` et tous les compteurs par relique sont réinitialisés.
 2. Les statuts à durée décrémentent ; ceux à 0 expirent.
 3. Événement `TURN_START` émis (crochet de relique).
-4. `player.freeStepUsed = false`.
+4. Les compteurs de permissions accordées par relique (dont le pas gratuit, § 6) sont remis à
+   leur maximum.
 
 ### Phase 1 — Tirage (1 geste, ~0,5 s)
 La Main est complétée à 3 dés (D11). **Le tirage et le lancer sont un seul événement
@@ -111,9 +115,12 @@ Le joueur compose une **séquence ordonnée** d'actions. Trois types d'entrée :
 
 | Entrée | Geste | Contrainte |
 |---|---|---|
-| Pas gratuit | drag du jeton vers une case adjacente libre | une fois par tour |
 | Dépense | drag d'un dé de la Main vers une case cible | la cible doit être légale (§ 5) |
 | Conservation | tap sur un dé de la Main | 2 au plus (D12) |
+
+Il n'y a **aucune entrée gratuite** (D34) : se déplacer d'une case est une dépense de dé
+comme une autre (§ 5.5). Une relique peut accorder une entrée gratuite ; le jeu de base n'en
+contient pas.
 
 **Rien n'est résolu** (D21). L'ordre des entrées est mémorisé : il compte pour Écho et Suite.
 
@@ -251,16 +258,26 @@ Le choix de face est fait à la pose, il est annulable comme n'importe quelle en
 visible sur le dé posé. Coût en temps : +0,4 s sur les tours avec Éclat, acceptable puisqu'un
 Éclat est par construction rare dans le pool.
 
-### 5.5 Dépense de secours (règle universelle)
+### 5.5 Dépense de secours — le déplacement ordinaire (règle universelle)
 > **Tout dé, quelle que soit sa face, peut être dépensé pour un déplacement d'une case
 > orthogonale**, à la place de son action.
 
-C'est le filet qui garantit que *jamais* un tirage ne rend un tour inutile — D18 le promet
-pour le pas gratuit, cette règle l'étend au cas où le pas gratuit est déjà consommé. Elle donne
-aussi au joueur un vrai levier : un tour peut être entièrement converti en mobilité (1 pas
-gratuit + 3 dés = 4 cases, ou 7 avec un Élan).
+Depuis D34, ce n'est plus un filet de sécurité : **c'est le verbe de déplacement du jeu**. Se
+placer coûte un dé, exactement comme frapper ou se garder. C'est ce qui fait de la position une
+monnaie, et de l'esquive un arbitrage plutôt qu'un réflexe. Un tour peut être entièrement
+converti en mobilité (3 dés = 3 cases, ou 5 avec un Élan).
+
+Le nom « secours » reste, parce que la règle assure toujours qu'aucun tirage ne peut rendre un
+tour inutile : une main de trois Frappes face à trois ennemis peut toujours produire trois pas.
+C'est cette règle, et non le pas gratuit, qui portait la garantie de D18 — le pas gratuit ne
+conservait en propre qu'une action gratuite par tour (voir `esquive-arbitrage.md` § 1).
 
 Le dé garde sa face pour les combos : une Frappe dépensée en secours reste une Frappe.
+
+**Le filet universel, lui, est Garde.** Un joueur encerclé — quatre voisines occupées ou hors
+grille — ne peut faire aucun pas, gratuit ou payé. Comme Garde est toujours légale et ne vise
+que soi-même, **il n'existe aucun état de jeu où le joueur n'a aucune action légale**. C'était
+une propriété tacite du système ; elle est écrite ici pour ne plus se perdre.
 
 **Ce qui reste interdit : la dépense à vide.** Un dé ne peut jamais être dépensé « pour rien »,
 même pour déclencher une relique. Sans cette interdiction, un build à déclenchements ferme
@@ -274,21 +291,28 @@ tiers « explosive » (`docs/03-content-budget.md`), sous surveillance du simula
 
 | Source | Distance | Coût | Traverse |
 |---|---|---|---|
-| Pas gratuit (D18) | 1 case orthogonale | gratuit, 1 fois par tour | non |
 | Dépense de secours (§ 5.5) | 1 case orthogonale | 1 dé, autant qu'on en a | non |
 | Élan | 2 ou 3 cases, un seul axe | 1 dé | oui, 1 dégât par ennemi traversé |
 | Poussée (subie) | 1 case, direction imposée | — | non |
+| *Pas gratuit* (permission de relique, D35) | 1 case orthogonale | gratuit, **1 fois par tour au total** | non |
 
 Ce qui bloque un déplacement d'une case : le bord de la grille, une unité, un `blocker`.
 Ce qui bloque un Élan : rien sur le chemin (il traverse) ; seule la case d'arrivée doit être
 libre, et un `blocker` interrompt le chemin (l'Élan s'arrête juste avant).
 
-Le pas gratuit est une **entrée de la séquence**, au même titre qu'une dépense : on peut
-frapper, puis se déplacer, puis frapper depuis la nouvelle position. Il ne compte pour aucun
-combo et n'émet pas `DIE_SPENT`.
+Tout déplacement est une **entrée de la séquence**, au même titre qu'une frappe : on peut
+frapper, puis se déplacer, puis frapper depuis la nouvelle position — au prix d'un dé par
+déplacement.
 
-Le pas gratuit ne peut pas être fractionné ni reporté d'un tour à l'autre. Non consommé, il
-est perdu.
+**Le pas gratuit n'existe plus dans le jeu de base (D34).** Il subsiste comme *permission*
+accordée par une relique de tier explosif (D35). Cette permission est plafonnée à **un seul pas
+gratuit par tour, toutes sources confondues** : deux reliques n'en donnent jamais deux. Le pas
+gratuit ne compte pour aucun combo, n'émet pas `DIE_SPENT`, ne se fractionne pas et ne se
+reporte pas d'un tour à l'autre ; non consommé, il est perdu.
+
+Pourquoi cette permission est plafonnée et rare : la mesure du 2026-08-31 (200 runs, 98,5 % sans
+perdre un PV) montre qu'un pas gratuit inconditionnel, combiné à des motifs d'attaque d'une
+case, produit une immunité complète. Voir `docs/design/esquive-arbitrage.md`.
 
 ---
 
@@ -344,6 +368,56 @@ protéger un allié, interdire du terrain. Quatre verbes, chacun lisible en une 
 d'autre n'entre en v1 — pas d'invocation, pas de soin, pas de buff de dégâts : chacun de ces
 trois-là allonge le combat, et le combat n'a que 40 secondes.
 
+### 8.1 bis — La grammaire des motifs (D36)
+
+`pattern` n'est pas écrit à la main ennemi par ennemi. Chaque type porte une **forme**, et le
+moteur en dérive les offsets **au moment du télégraphe**. Trois formes, liste fermée en v1.
+
+Soit `a = offset(case de l'ennemi → case visée)`, et `d` le vecteur unitaire orthogonal de l'axe
+ennemi → case visée. `d` n'est défini que si les deux cases sont alignées.
+
+| Forme | Offsets produits | Cases surlignées | Esquives d'une case qui fonctionnent |
+|---|---|---|---|
+| `single` | `[a]` | 1 | les 4 voisines libres |
+| `lunge` | `[a, a+d]` | 2, contiguës | les 2 voisines perpendiculaires (la 3ᵉ est l'ennemi) |
+| `line3` | `[a−d, a, a+d]` | 3, alignées | les 2 voisines perpendiculaires |
+
+Règles dures :
+
+1. **Si `d` n'est pas défini** (ennemi et case visée non alignés), la forme retombe sur `single`.
+   Aucun cas indéfini, aucun appel au RNG : I1 tient.
+2. Les cases **hors grille sont écrêtées** : elles ne sont pas surlignées et ne font rien à la
+   résolution. Le motif ne « rebondit » jamais.
+3. Une case du motif occupée par un autre ennemi n'est pas touchée : pas de tir fratricide en v0.
+4. Une fois dérivés, les offsets sont **figés** et suivent l'ancre comme n'importe quel motif
+   (§ 8.2). Recalculer la forme après un déplacement d'ennemi serait une violation de D28.
+
+**Pourquoi trois formes et pas des motifs libres.** Avec des motifs d'une seule case tous ancrés
+sur la case du joueur, le nombre de cases menacées vaut 1 quel que soit le nombre d'ennemis :
+l'esquive ne peut pas échouer, et aucun réglage de dégâts ne corrige cela. Les formes à 2 et 3
+cases rendent l'esquive **directionnelle** — il y a désormais une mauvaise direction — et
+permettent à deux ennemis d'axes perpendiculaires de fermer toutes les sorties. C'est ce qui
+redonne du sens au placement écrit à la main. Écarté : le motif en croix (case visée + ses 4
+voisines), qui ne laisse aucune esquive d'une case et remplacerait l'automatisme du pas par
+l'automatisme de la Garde.
+
+**Règle de production** : au plus **un** ennemi par rencontre porte une forme autre que `single`
+en actes 1 et 2 ; deux en acte 3. Au-delà, la grille se ferme et la rencontre devient un puzzle
+sans solution.
+
+### 8.1 ter — Résolution d'une `charge`
+
+Une `charge` parcourt son `path`, **puis** exécute son `attack`. Deux règles suffisent :
+
+1. Le `path` fait **au plus une case** en v1.
+2. Le `pattern` d'une `charge` est exprimé **relativement à la case d'arrivée**, et l'attaque
+   s'ancre sur la case de l'unité *après* le déplacement.
+
+Conséquence, qui n'est pas un cas particulier mais l'application directe de D28 : **si la case
+d'arrivée est devenue occupée, le déplacement s'arrête comme un `move` ordinaire et l'attaque
+tombe une case trop court.** Bloquer une charge avec un corps la fait manquer — c'est une
+tactique offerte au joueur, et elle est visible en direct pendant la phase de choix.
+
 ### 8.2 Ancrage — la règle qui rend le télégraphe honnête
 
 **Le motif de cases est figé au moment du télégraphe. L'ancre suit l'unité.**
@@ -383,6 +457,32 @@ Marche d'une case « vers le joueur » :
 Pas de recherche de chemin. Un ennemi se laisse bloquer par un corps : c'est une tactique du
 joueur, pas un bug.
 
+### 8.5 Le cerveau de mêlée (D37)
+
+Deux cerveaux de mêlée, sélectionnés par type d'ennemi.
+
+**`approach`** — celui des trois ennemis de départ, inchangé :
+1. Joueur à portée → `attack` sur sa case.
+2. Sinon → `move` d'une case vers lui (§ 8.4).
+
+**`charge`** — le défaut **à partir de l'acte 2** :
+1. Joueur à portée → `attack` sur sa case. `path` vide.
+2. Sinon, s'il existe une case adjacente **libre** `c` depuis laquelle le joueur serait à portée
+   → `charge` avec `path = [offset(unité → c)]` et motif dérivé depuis `c` (§ 8.1 bis).
+   Départage entre plusieurs `c` : ordre universel Haut, Droite, Bas, Gauche.
+3. Sinon → `move` d'une case vers le joueur.
+
+Fonction pure de l'état, aucun RNG. **Pourquoi pas en acte 1** : `run.md` § 5.6 introduit
+`charge` en acte 2, et un ennemi qui télégraphie une case d'arrivée *et* une case visée demande
+deux lectures. Les trois ennemis de départ enseignent une chose chacun ; leur travail n'est pas
+de faire mal.
+
+**Ce que `charge` corrige, et ce qu'elle ne corrige pas.** Elle supprime l'asymétrie ressentie
+(le joueur se déplace et agit, l'ennemi faisait l'un ou l'autre) et le tour perdu au
+réengagement après une esquive, ce qui rend environ 0,4 tour par combat. Elle **ne corrige pas**
+l'esquive : une `charge` reste télégraphiée sur une case précise et reste esquivable d'un pas.
+Le correctif de l'esquive est D36, pas D37.
+
 ---
 
 ## 9. Les trois ennemis de départ
@@ -395,17 +495,22 @@ Chacun enseigne exactement une chose. Ils sont conçus pour être rencontrés da
 |---|---|
 | PV | 4 |
 | Armure | 0 |
-| Attaque | 2 dégâts, motif d'une seule case |
+| Attaque | 2 dégâts, forme `single` |
 | Portée | 1 (orthogonale adjacente) |
 | Déplacement | 1 case |
+| Cerveau | `approach` |
 
 **Choix d'intention :** si le joueur est orthogonalement adjacent → `attack` sur la case du
 joueur. Sinon → `move` d'une case vers le joueur.
 
 Meurt en 2 Frappes. C'est le mètre étalon : le joueur apprend qu'un dé et demi de Frappe tue
 un Rôdeur, et il calibre tout le reste là-dessus. La leçon arrive au tour 2 de la toute
-première rencontre : le Rôdeur télégraphie une case, le joueur fait son pas gratuit, le coup
-tombe dans le vide. Rien à lire, rien à expliquer.
+première rencontre : le Rôdeur télégraphie une case, le joueur dépense un dé pour un pas, le
+coup tombe dans le vide. Rien à lire, rien à expliquer — et il vient d'apprendre au passage que
+bouger coûte quelque chose.
+
+Il garde la forme `single` **précisément parce que sa leçon exige que n'importe quelle esquive
+fonctionne.** Il est le seul des trois dans ce cas.
 
 ### E2 — Guetteur — *enseigne : la ligne et la portée*
 
@@ -413,9 +518,10 @@ tombe dans le vide. Rien à lire, rien à expliquer.
 |---|---|
 | PV | 3 |
 | Armure | 0 |
-| Attaque | **3 dégâts**, motif d'une seule case |
+| Attaque | **3 dégâts**, forme **`line3`** |
 | Portée | 2 à 4, en ligne orthogonale dégagée |
 | Déplacement | 1 case, jamais vers le joueur à moins de distance 2 |
+| Cerveau | `sniper` |
 
 **Choix d'intention :** s'il existe une ligne orthogonale dégagée vers le joueur de longueur 2
 à 4 → `attack` sur la case du joueur. Sinon → `move` d'une case, en préférant dans l'ordre :
@@ -429,15 +535,21 @@ phrase : **casse la ligne ou tue-le tout de suite**. Il apprend aussi au joueur 
 d'une ligne orthogonale — donc se placer « en diagonale » — est une position sûre, ce qui est
 la compétence spatiale de base de ce jeu.
 
+Sa forme est `line3` : le tir couvre la case visée et les deux cases voisines **sur la ligne**.
+Reculer le long de la ligne ou avancer vers le tireur ne sauve donc plus ; **la seule esquive est
+perpendiculaire.** C'est ce qui fait passer sa leçon du conseil à la nécessité : la ligne est
+dangereuse sur toute sa longueur, pas seulement sur une case.
+
 ### E3 — Bélier — *enseigne : la menace qu'on ne supprime pas ce tour-ci*
 
 | | |
 |---|---|
 | PV | 7 |
 | Armure | 0 |
-| Attaque | 2 dégâts, motif d'une seule case, **+ Poussée 1** dans la direction opposée au Bélier |
+| Attaque | 2 dégâts, forme **`lunge`**, **+ Poussée 1** dans la direction opposée au Bélier |
 | Portée | 1 |
 | Déplacement | 1 case |
+| Cerveau | `approach` |
 
 **Choix d'intention :** identique au Rôdeur (adjacent → `attack`, sinon → `move`).
 
@@ -447,18 +559,32 @@ d'un Guetteur — c'est la première fois que le jeu punit une position et pas u
 dépense. Écarté pour lui : une Armure. Deux règles nouvelles sur le même ennemi, c'est une
 leçon de trop ; l'Armure entre à l'acte 2 sur un autre corps.
 
+Sa forme est `lunge` : la case visée **et la case au-delà**. Il ne reste que deux esquives, les
+perpendiculaires. Le Bélier est donc l'ennemi qui **ferme des cases**, ce qui est la version
+spatiale de sa leçon, et il est le seul ennemi de l'acte 1 dont l'esquive a une mauvaise
+direction.
+
 ### Compositions de l'acte 1
 
 | Rencontre | Composition | PV totaux | Leçon |
 |---|---|---|---|
-| A1 rang 1 (a) | 2 × Rôdeur | 8 | esquiver |
-| A1 rang 1 (b) | Rôdeur + Guetteur | 7 | casser la ligne |
+| A1 rang 1 (a) | 2 × Rôdeur | 8 | esquiver — et découvrir que le pas coûte un dé |
+| A1 rang 1 (b) | Rôdeur + Guetteur | 7 | casser la ligne, qui est dangereuse sur 3 cases |
 | A1 rang 2 (a) | 2 × Rôdeur + Guetteur | 11 | ordre de priorité des cibles |
-| A1 rang 2 (b) | Bélier + Guetteur | 10 | le corps qui protège le tireur |
+| A1 rang 2 (b) | Bélier + Guetteur | 10 | le corps qui protège le tireur — **et la première tenaille** |
 | A1 rang 3 | Rôdeur + Guetteur + Bélier | 14 | tout à la fois |
 
 Les placements de départ sont écrits à la main pour chaque rencontre, jamais générés. Une
 rencontre télégraphiée est un petit puzzle ; un placement aléatoire produit de la bouillie.
+
+**La tenaille, et pourquoi c'est le placement qui la fabrique.** Un Bélier collé au joueur sur un
+axe menace `{joueur, au-delà}` ; un Guetteur aligné sur l'axe perpendiculaire menace
+`{devant, joueur, derrière}`. Des quatre voisines du joueur, une est occupée par le Bélier, une
+est la case de fente, deux sont sur la ligne du Guetteur : **plus aucune esquive d'une case.** Le
+joueur doit se garder, tuer le Guetteur (3 PV, une Frappe suffit presque), ou sortir à l'Élan.
+C'est le premier vrai problème tactique du jeu, il tombe au rang 2 de l'acte 1, et il naît
+entièrement du placement — pas d'un chiffre. Contrainte de production associée : une tenaille par
+rencontre au maximum en acte 1, sans quoi la rencontre n'a plus de solution.
 
 ---
 
@@ -523,8 +649,8 @@ aucun effet, mais **le dé est bel et bien dépensé, l'événement `DIE_SPENT` 
 compte pour les combos**. Un joueur qui surtue ne doit pas voir son combo s'effondrer à cause
 d'un bon jet.
 
-Un déplacement (pas gratuit, secours, Élan) dont la case d'arrivée est devenue illégale suit
-les règles de § 10.2, il ne fait pas long feu.
+Un déplacement (secours, Élan, ou pas gratuit accordé par relique) dont la case d'arrivée est
+devenue illégale suit les règles de § 10.2, il ne fait pas long feu.
 
 ### 10.6 Un effet qui se déclenche pendant la résolution
 
@@ -568,9 +694,11 @@ combo n'a d'effet propre : ce sont des crochets que les reliques observent. La l
 ### 11.1 Définitions formelles
 
 Soit `S = [f₁, f₂, ..., fₙ]` la séquence des **faces effectives** des dés dépensés ce tour,
-dans l'ordre de pose. La face effective d'un Éclat est la face choisie à la pose. Le pas
-gratuit n'entre pas dans `S`. Une dépense qui fait long feu (§ 10.5) entre dans `S`. Une
-dépense de secours (§ 5.5) entre dans `S` avec sa propre face.
+dans l'ordre de pose. La face effective d'un Éclat est la face choisie à la pose. Une dépense
+qui fait long feu (§ 10.5) entre dans `S`. Une **dépense de secours** (§ 5.5) entre dans `S`
+avec sa propre face — c'est ce qui fait qu'un tour de repositionnement peut quand même produire
+un combo. Un pas gratuit accordé par relique (D35) n'entre **pas** dans `S`, puisqu'aucun dé
+n'est dépensé.
 
 | Combo | Définition |
 |---|---|
@@ -710,16 +838,17 @@ tour complet, résolution comprise**, avec 2 à 4 décisions.
 |---|---|---|
 | 0 — Début de tour | 0,0 s | aucune décision, aucune animation bloquante |
 | 1 — Tirage | 0,5 s | un événement aléatoire (D20), animation interruptible au tap |
-| 2 — Lecture | 1,5 s | uniquement quand les intentions changent |
-| 3 — Choix : 3 dépenses | 3,3 s | 1,1 s par drag |
-| 3 — Choix : pas gratuit | 0,6 s | utilisé environ 60 % des tours |
+| 2 — Lecture | **1,7 s** | +0,2 s depuis D36 : 2 ou 3 cases surlignées sur ~70 % des tours |
+| 3 — Choix : 3 dépenses | 3,3 s | 1,1 s par drag, déplacements compris (D34) |
 | 3 — Choix : conservation | 0,3 s | 0 tap par défaut, 1 tap quand on conserve |
 | 4 — Validation | 0,3 s | un tap, bouton fixe |
 | 5 — Résolution | **1,5 s** | joueur ~0,6 s + ennemis ~0,9 s, plafond dur 2,0 s |
 | 6 — Défausse | 0,0 s | enchaîne automatiquement sur le tirage suivant |
-| **Total** | **8,0 s** | |
+| **Total** | **7,6 s** | |
 
-Le compte tombe **pile sur le budget, sans marge**. Trois exigences en découlent, et ce sont des
+**0,4 s de marge sur le contrat de 8,0 s** — la première que ce document ait jamais eue, rendue
+par la suppression du pas gratuit (D34). Elle n'est allouée à personne : c'est la réserve qui
+absorbe les dépassements de résolution. Trois exigences restent en vigueur, et ce sont des
 exigences de développement, pas des vœux :
 - toute animation est interruptible au tap et l'état saute à sa fin ;
 - il n'y a **aucun tap entre la fin d'un tour et le tirage suivant** ; le tour s'enchaîne seul ;
