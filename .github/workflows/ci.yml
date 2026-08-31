@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      # Garde-fou de déterminisme : la même graine doit produire exactement la même run.
+      # Si cette comparaison casse un jour, l'invariant I1 est mort et le simulateur avec.
+      - name: Déterminisme de la simulation
+        run: |
+          pnpm sim --seed 42 > /tmp/run-a.txt
+          pnpm sim --seed 42 > /tmp/run-b.txt
+          diff /tmp/run-a.txt /tmp/run-b.txt

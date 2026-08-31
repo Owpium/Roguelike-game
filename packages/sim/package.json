@@ -1,0 +1,10 @@
+{
+  "name": "@rl/sim",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@rl/core": "workspace:*",
+    "@rl/content": "workspace:*"
+  }
+}

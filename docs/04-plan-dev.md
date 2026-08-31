@@ -15,12 +15,20 @@ Contexte : dev solo, **temps irrégulier, par à-coups**. Conséquences assumée
 Concept figé, systèmes cadrés, content budget, agents créés, arbitrages listés.
 **Sortie** : la doc de ce dossier. Aucune ligne de code de jeu.
 
-### M1 — Socle technique
-Repo TypeScript, Vite, Vitest, CI, et le **cœur de jeu headless** : état, réducteur pur,
-RNG seedé, une run entière jouable en ligne de commande, sans une seule pixel.
-**Sortie** : `pnpm sim --seed 42` joue une run complète avec une IA basique et affiche le log.
-**Pourquoi d'abord** : ça rend `balance-simulator` opérationnel dès M2, et ça garantit
-l'invariant de déterminisme au lieu de le rattraper plus tard.
+### M1 — Socle technique ✅
+Monorepo pnpm, TypeScript strict, Vitest, CI, et le **cœur de jeu headless** : état,
+réducteur pur, RNG seedé, une run entière jouable en ligne de commande, sans une seule pixel.
+
+**Sortie livrée** : `pnpm sim --seed 42` joue une run complète et affiche le journal ;
+`pnpm sim --seed 1 --runs 200` agrège. 36 tests, typecheck et déterminisme vérifiés en CI.
+
+**Ce que le jalon a immédiatement produit** : le premier rapport de simulation,
+`docs/design/rapports/2026-08-31-esquive-gratuite.md`, qui montre que l'esquive est gratuite
+et totale — 98,5 % des runs se terminent sans perdre un seul PV. C'est exactement ce pour quoi
+ce jalon passe avant le rendu.
+
+**Réserve** : le contenu des actes 2 et 3, les élites et les boss sont des remplisseurs
+(`packages/content/src/encounters.ts`). Ils font tourner le moteur, ils ne mesurent rien.
 
 ### M2 — Le premier combat 🚦 **GATE DE DÉCISION**
 Grille, dés, main, intentions ennemies, 1 personnage, 3 ennemis, rendu généré par code, en

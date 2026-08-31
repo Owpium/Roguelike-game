@@ -1,0 +1,9 @@
+{
+  "name": "@rl/content",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@rl/core": "workspace:*"
+  }
+}

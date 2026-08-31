@@ -4,7 +4,22 @@ Un roguelike tactique en portrait, jouable au pouce. Chaque tour, tu tires une m
 d'action ; tes reliques ne donnent pas de stats, elles modifient tes dés et se déclenchent
 quand tu les dépenses. Une run dure 10 à 15 minutes et s'interrompt à tout moment.
 
-**État : cadrage (jalon M0).** Aucune ligne de code de jeu pour l'instant — c'est délibéré.
+**État : socle technique (jalon M1).** Le cœur de jeu tourne en headless, sans interface.
+
+```bash
+pnpm install
+pnpm typecheck && pnpm test
+pnpm sim --seed 42              # une run complète en console
+pnpm sim --seed 1 --runs 200    # agrégat sur 200 runs
+```
+
+## Paquets
+
+| Paquet | Rôle |
+|---|---|
+| `packages/core` | Le jeu. Pur, déterministe, aucune référence au DOM ni au temps qui passe |
+| `packages/content` | Les données : dés, ennemis, rencontres |
+| `packages/sim` | Le simulateur headless et son IA de joueur |
 
 ## Documentation
 
@@ -17,6 +32,9 @@ quand tu les dépenses. Une run dure 10 à 15 minutes et s'interrompt à tout mo
 | [Plan de dev](docs/04-plan-dev.md) | jalons M0 à M7 |
 | [Technique](docs/05-technique.md) | stack, architecture, décisions structurantes |
 | [Arbitrages](docs/06-arbitrages.md) | décisions prises et points ouverts par priorité |
+| [Combat](docs/design/combat.md) | règles complètes, chiffrées, implémentables |
+| [Run](docs/design/run.md) | carte, nœuds, récompenses, courbe de difficulté |
+| [Rapports](docs/design/rapports/) | mesures de simulation |
 
 ## Stack visée
 
