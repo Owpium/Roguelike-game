@@ -38,7 +38,21 @@ motifs `single`/`lunge`/`line3` (D46), `charge` à partir de l'acte 2 (D47), soi
 ### M2 — Le premier combat 🚦 **GATE DE DÉCISION** — prochain jalon
 Grille, dés, main, intentions ennemies, 1 personnage, 3 ennemis, rendu généré par code, en
 portrait, sur un vrai téléphone.
-**Sortie** : un combat jouable au pouce.
+**Sortie livrée** : `pnpm dev`, un combat jouable au pouce en portrait. Les cinq rencontres
+de l'acte 1, les trois reliques factices activables une à une, la grille en canvas derrière
+une interface `Renderer`, le HUD et la Main en React dans le tiers inférieur de l'écran.
+
+Ce que l'interface tient déjà : le rendu lit l'**état projeté**, donc les cases visées se
+recalculent en direct pendant la pose — la promesse de D21 est vraie par construction, pas
+par vigilance. L'annulation est LIFO. Rien n'est résolu avant *Valider*.
+
+Ce qu'elle ne fait pas encore, et c'est conforme au plan : **aucune animation**. L'état
+bascule d'un coup, avec des indicateurs de dégâts flottants et le journal du tour en
+français. Le mouvement animé, l'haptique et le son sont le sujet de M5.
+
+Vérification automatique : `pnpm --filter @rl/app smoke` ouvre la page dans un Chromium aux
+dimensions d'un téléphone et échoue si la page déborde latéralement, si une case passe sous
+44 px, ou si la console produit une erreur.
 **Question du gate** : *est-ce que jouer un seul combat est déjà agréable ?*
 Si non → on pivote la boucle de tour ici, où ça ne coûte que M1+M2. Ne pas franchir ce gate
 par optimisme.

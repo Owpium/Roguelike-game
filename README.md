@@ -4,14 +4,18 @@ Un roguelike tactique en portrait, jouable au pouce. Chaque tour, tu tires une m
 d'action ; tes reliques ne donnent pas de stats, elles modifient tes dés et se déclenchent
 quand tu les dépenses. Une run dure 10 à 15 minutes et s'interrompt à tout moment.
 
-**État : socle technique (jalon M1).** Le cœur de jeu tourne en headless, sans interface.
+**État : premier combat jouable (jalon M2).** Le gate de décision est prêt à être joué.
 
 ```bash
 pnpm install
+pnpm dev                        # le combat, à ouvrir sur un téléphone
 pnpm typecheck && pnpm test
 pnpm sim --seed 42              # une run complète en console
-pnpm sim --seed 1 --runs 200    # agrégat sur 200 runs
+pnpm sim --campaign --runs 500  # les six variantes de règles, appariées
 ```
+
+`pnpm dev` écoute sur le réseau local : ouvre l'adresse affichée sur ton téléphone, c'est
+là que la question du gate se juge.
 
 ## Paquets
 
@@ -20,6 +24,7 @@ pnpm sim --seed 1 --runs 200    # agrégat sur 200 runs
 | `packages/core` | Le jeu. Pur, déterministe, aucune référence au DOM ni au temps qui passe |
 | `packages/content` | Les données : dés, ennemis, rencontres |
 | `packages/sim` | Le simulateur headless et son IA de joueur |
+| `packages/app` | L'interface : grille en canvas, HUD React, portrait, une main |
 
 ## Documentation
 

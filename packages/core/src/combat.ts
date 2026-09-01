@@ -10,6 +10,7 @@ import {
 import { applyDamage, assertOccupancy, findUnit, isFree, removeDying, push, unitAt } from "./board.ts";
 import { computeIntent, hasClearLine } from "./intents.ts";
 import { detectCombos } from "./combos.ts";
+import { applyGateRelics } from "./relics-gate.ts";
 import { RULES, type RuleSet } from "./rules.ts";
 import { nextInt, type RngState } from "./rng.ts";
 import type {
@@ -38,6 +39,8 @@ export interface CombatSetup {
   rng: RngState;
   /** Variante de règles. Par défaut, celles de `docs/design/combat.md`. */
   rules?: RuleSet;
+  /** Reliques portées. Échafaudage du gate M2. */
+  relics?: string[];
   pool: Die[];
   hp: number;
   hpMax: number;
@@ -81,6 +84,7 @@ export function createCombat(setup: CombatSetup): CombatState {
     pendingActions: [],
     triggerBudget: RULES.triggerBudgetPerTurn,
     triggersBySource: {},
+    relics: setup.relics ?? [],
     lastTurnLog: [],
     nextUnitId: units.length + 1,
     dieRegistry: Object.fromEntries(setup.pool.map((die) => [die.id, die])),
@@ -467,8 +471,12 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
   const combos = detectCombos(sequence);
   for (const combo of combos) log.push({ t: "COMBO_DETECTED", combo });
   for (const combo of combos) {
-    // Aucun combo n'a d'effet propre en v0 : ce sont des crochets pour les reliques.
+    // Le combo s'annonce d'abord, ses effets ensuite : le journal doit se lire dans l'ordre
+    // où le joueur comprend ce qui se passe. Aucun combo n'a d'effet propre — ce sont des
+    // crochets, seules les reliques agissent.
     log.push({ t: "COMBO_RESOLVED", combo });
+    applyGateRelics(state, combo, log);
+    if (state.player.hp <= 0) return lose(state, log);
   }
 
   log.push({ t: "PLAYER_PHASE_END" });

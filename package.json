@@ -7,10 +7,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "node --experimental-strip-types packages/sim/src/cli.ts"
+    "sim": "node --experimental-strip-types packages/sim/src/cli.ts",
+    "dev": "pnpm --filter @rl/app dev",
+    "build": "pnpm --filter @rl/app build"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "playwright": "^1.62.1",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },

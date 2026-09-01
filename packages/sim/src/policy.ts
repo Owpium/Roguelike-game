@@ -1,20 +1,20 @@
 import {
   DIR_VECTOR,
+  cellKey as key,
   eq,
   findUnit,
-  inGrid,
-  isFree,
   legalEntries,
   manhattan,
   project,
   reduce,
+  threatFromUnit as threatFrom,
+  threatMap,
   translate,
   type Cell,
   type CombatState,
   type EnemyType,
   type GameEvent,
   type LegalEntry,
-  type Unit,
 } from "@rl/core";
 
 /**
@@ -28,49 +28,6 @@ import {
  *
  * Aucun seuil, aucune constante ne change d'une variante à l'autre.
  */
-
-const key = (c: Cell): string => `${c.x},${c.y}`;
-
-/**
- * Case d'ancrage réelle de l'intention : pour une `charge`, le motif est ancré sur la case
- * d'arrivée, qu'il faut donc projeter en tenant compte des blocages.
- */
-function projectedAnchor(state: CombatState, unit: Unit): Cell {
-  let anchor = unit.cell;
-  const intent = unit.intent;
-  if (!intent) return anchor;
-  if (intent.kind !== "move" && intent.kind !== "charge") return anchor;
-  for (const offset of intent.path) {
-    const to = translate(anchor, offset);
-    if (!isFree(state, to)) break;
-    anchor = to;
-  }
-  return anchor;
-}
-
-/** Menace en PV pesant sur chaque case : somme des dégâts des intentions qui la couvrent. */
-export function threatMap(state: CombatState): Map<string, number> {
-  const map = new Map<string, number>();
-  for (const unit of state.units) {
-    const intent = unit.intent;
-    if (!intent || (intent.kind !== "attack" && intent.kind !== "charge")) continue;
-    const anchor = projectedAnchor(state, unit);
-    for (const offset of intent.pattern) {
-      const cell = translate(anchor, offset);
-      if (!inGrid(cell)) continue;
-      map.set(key(cell), (map.get(key(cell)) ?? 0) + intent.value);
-    }
-  }
-  return map;
-}
-
-/** Menace apportée par une seule unité, pour créditer une frappe létale de ce qu'elle évite. */
-function threatFrom(state: CombatState, unit: Unit, cell: Cell): number {
-  const intent = unit.intent;
-  if (!intent || (intent.kind !== "attack" && intent.kind !== "charge")) return 0;
-  const anchor = projectedAnchor(state, unit);
-  return intent.pattern.some((o) => eq(translate(anchor, o), cell)) ? intent.value : 0;
-}
 
 function scoreEntry(view: CombatState, threat: Map<string, number>, entry: LegalEntry): number {
   const here = threat.get(key(view.player.cell)) ?? 0;

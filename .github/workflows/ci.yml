@@ -20,6 +20,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm build
       # Garde-fou de déterminisme : la même graine doit produire exactement la même run.
       # Si cette comparaison casse un jour, l'invariant I1 est mort et le simulateur avec.
       - name: Déterminisme de la simulation

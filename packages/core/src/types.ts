@@ -117,6 +117,8 @@ export interface CombatState {
   pendingActions: PendingAction[];
   triggerBudget: number;
   triggersBySource: Record<string, number>;
+  /** Identifiants des reliques portées. Échafaudage M2 : voir `relics-gate.ts` et A10. */
+  relics: string[];
   /** Journal du tour précédent, conservé pour le rejeu visuel (combat.md § 3, phase 5). */
   lastTurnLog: GameEvent[];
   nextUnitId: number;

@@ -4,6 +4,8 @@ export * from "./types.ts";
 export * from "./rules.ts";
 export * from "./combos.ts";
 export * from "./board.ts";
+export * from "./derived.ts";
 export * from "./intents.ts";
 export * from "./combat.ts";
+export * from "./relics-gate.ts";
 export * from "./run.ts";
