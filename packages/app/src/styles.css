@@ -210,3 +210,46 @@ button.primary { background: var(--brass); border-color: var(--brass); color: #1
 }
 .banner[data-outcome="won"] { color: var(--jade); }
 .banner[data-outcome="lost"] { color: var(--clay); }
+
+/* ---------------------------------------------------------------- reliques */
+
+.relics { display: flex; flex-direction: column; gap: 6px; }
+
+.relic-row {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: var(--ink-soft);
+  font: inherit;
+  min-height: 44px;
+}
+.relic-row[data-on="true"] { border-color: var(--brass); }
+.relic-row .mark { color: var(--line); font-size: 13px; line-height: 1.5; }
+.relic-row[data-on="true"] .mark { color: var(--brass); }
+.relic-row .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.relic-row b { color: var(--ink); font-size: 13px; font-weight: 600; }
+.relic-row[data-on="false"] b { color: var(--ink-soft); }
+.relic-row i { font-style: normal; font-size: 12px; line-height: 1.4; }
+
+.hint-line { margin: 2px 0 0; font-size: 11px; line-height: 1.45; color: var(--ink-faint, #6f7d84); }
+
+/* ---------------------------------------------------------------- combo en cours */
+
+.combo {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: var(--panel);
+  border: 1px solid var(--brass);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+.combo b { color: var(--brass); font-weight: 700; }

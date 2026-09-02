@@ -23,11 +23,15 @@ export interface Die {
   faces: [Face, Face, Face, Face, Face, Face];
 }
 
-/** Un dé en Main : la face montrée, et s'il est conservé pour le tour suivant. */
+/**
+ * Un dé en Main : la face qu'il montre.
+ *
+ * Il n'y a pas de drapeau « conservé » : un dé non dépensé **reste en Main tel quel** et
+ * n'est pas relancé (D49). Le choix du joueur porte sur ce qu'il joue, pas sur ce qu'il garde.
+ */
 export interface HandDie {
   dieId: string;
   face: Face;
-  kept: boolean;
 }
 
 export type SpendAction =

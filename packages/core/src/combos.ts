@@ -17,6 +17,31 @@ type EffectiveFace = Exclude<Face, "spark">;
 /** La sous-séquence consécutive exacte que cherche Suite. */
 const SUITE: readonly EffectiveFace[] = ["strike", "guard", "surge"];
 
+/**
+ * Bonus intrinsèque par face, dérivé du nombre de dépenses de cette face dans le tour.
+ *
+ * Deux dépenses d'une même face valent mieux que deux dépenses isolées, trois encore mieux :
+ * c'est ce qui rend le combo lisible sans qu'on l'explique. Le bonus est **additif et par
+ * dépense**, pas multiplicatif — une Frappe seule fait 2, deux Frappes font 3 + 3, trois font
+ * 4 + 4 + 4. La courbe monte comme un multiplicateur, la lecture reste une addition, et aucun
+ * chiffre n'apparaît sur les dés (D13).
+ *
+ * Le bonus est connu AVANT la résolution, puisqu'il ne dépend que des dépenses posées. C'est
+ * ce qui permet à l'interface de l'afficher pendant la phase de choix.
+ */
+export function comboBonusByFace(
+  sequence: readonly EffectiveFace[],
+): Map<EffectiveFace, number> {
+  const counts = new Map<EffectiveFace, number>();
+  for (const face of sequence) counts.set(face, (counts.get(face) ?? 0) + 1);
+
+  const bonus = new Map<EffectiveFace, number>();
+  for (const [face, count] of counts) {
+    bonus.set(face, count >= 3 ? 2 : count >= 2 ? 1 : 0);
+  }
+  return bonus;
+}
+
 export function detectCombos(sequence: readonly EffectiveFace[]): Combo[] {
   const counts = new Map<EffectiveFace, number>();
   for (const face of sequence) counts.set(face, (counts.get(face) ?? 0) + 1);

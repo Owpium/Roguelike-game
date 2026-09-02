@@ -10,7 +10,7 @@
 |---|---|
 | **Pool** | L'ensemble des dés que possède le personnage. C'est sa fiche de perso. |
 | **Main** | Les dés disponibles ce tour : les dés conservés du tour précédent, complétés par de nouveaux dés tirés du pool. |
-| **Conservation** | Le choix explicite de garder un dé sans le dépenser. Le dé garde sa face ; il n'est pas relancé. |
+| **Report** | Un dé non dépensé reste en Main avec sa face et n'est pas relancé (D49). Ce n'est pas un choix : c'est la conséquence de ne pas l'avoir joué. |
 | **Face** | Le symbole obtenu sur un dé tiré : Frappe, Garde, Élan, Éclat (joker). |
 | **Dépense** | L'acte de consommer un dé pour exécuter une action. Le moment où tout se déclenche. |
 | **Relique** | Un objet permanent de la run. Ne donne pas de stats : modifie le pool, les faces, le tirage, ou réagit à une dépense. |

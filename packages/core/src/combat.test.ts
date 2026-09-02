@@ -184,42 +184,104 @@ describe("Élan", () => {
   });
 });
 
-describe("Main et conservation", () => {
+describe("bonus de combo appliqué à la résolution", () => {
+  function spendStrikes(count: number): CombatState {
+    let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(3, 4) }] });
+    const target = state.units[0]!.id;
+    for (const die of state.hand.slice(0, count)) {
+      state = reduce(
+        state,
+        {
+          type: "ENTER",
+          entry: {
+            kind: "spend",
+            dieId: die.dieId,
+            rolled: "strike",
+            effective: "strike",
+            action: { type: "strike", targetId: target },
+          },
+        },
+        TYPES,
+      ).state;
+    }
+    return reduce(state, { type: "VALIDATE" }, TYPES).state;
+  }
+
+  it("une Frappe seule inflige les dégâts de base", () => {
+    expect(spendStrikes(1).units[0]!.hp).toBe(10 - 2);
+  });
+
+  it("deux Frappes valent 3 chacune, pas 2", () => {
+    expect(spendStrikes(2).units[0]!.hp).toBe(10 - 3 - 3);
+  });
+
+  it("trois Frappes valent 4 chacune", () => {
+    // 12 dégâts sur 10 PV : la cible meurt, ce qui est le propos du combo.
+    expect(spendStrikes(3).units).toHaveLength(0);
+  });
+
+  it("amplifie aussi la Garde", () => {
+    let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] }, "guard");
+    for (const die of state.hand.slice(0, 2)) {
+      state = reduce(
+        state,
+        {
+          type: "ENTER",
+          entry: {
+            kind: "spend",
+            dieId: die.dieId,
+            rolled: "guard",
+            effective: "guard",
+            action: { type: "guard" },
+          },
+        },
+        TYPES,
+      ).state;
+    }
+    const { log } = reduce(state, { type: "VALIDATE" }, TYPES);
+    const gains = log.flatMap((e) => (e.t === "SHIELD_GAINED" ? [e.amount] : []));
+    expect(gains).toEqual([4, 4]);
+  });
+
+  it("ne bonifie pas une dépense de secours : il n'y a rien à amplifier", () => {
+    let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] });
+    for (const [i, die] of state.hand.slice(0, 2).entries()) {
+      state = reduce(
+        state,
+        {
+          type: "ENTER",
+          entry: {
+            kind: "spend",
+            dieId: die.dieId,
+            rolled: "strike",
+            effective: "strike",
+            action: { type: "step", dir: i === 0 ? "up" : "down" },
+          },
+        },
+        TYPES,
+      ).state;
+    }
+    const { log } = reduce(state, { type: "VALIDATE" }, TYPES);
+    expect(log.some((e) => e.t === "DAMAGE_DEALT")).toBe(false);
+  });
+});
+
+describe("Main et report", () => {
   it("complète la Main à trois dés", () => {
     const state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] });
     expect(state.hand).toHaveLength(RULES.handSize);
   });
 
-  it("refuse de conserver plus que le plafond", () => {
-    let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] });
-    for (const die of state.hand) {
-      state = reduce(state, { type: "KEEP", dieId: die.dieId }, TYPES).state;
-    }
-    expect(state.hand.filter((d) => d.kept)).toHaveLength(RULES.keepCap);
-  });
-
-  it("ne relance pas les dés conservés et défausse les autres", () => {
-    let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] }, "guard");
-    const keptId = state.hand[0]!.dieId;
-    state = reduce(state, { type: "KEEP", dieId: keptId }, TYPES).state;
-    const after = reduce(state, { type: "VALIDATE" }, TYPES).state;
-
-    expect(after.hand.some((d) => d.dieId === keptId)).toBe(true);
-    expect(after.hand).toHaveLength(RULES.handSize);
-    expect(after.discard).toHaveLength(2);
-  });
-
-  it("interdit de dépenser un dé conservé", () => {
+  it("garde les dés non dépensés avec leur face et ne relance que les dépensés", () => {
     let state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(3, 4) }] });
-    const die = state.hand[0]!;
-    state = reduce(state, { type: "KEEP", dieId: die.dieId }, TYPES).state;
-    const attempted = reduce(
+    const [spentDie, keptA, keptB] = state.hand;
+    state = reduce(
       state,
       {
         type: "ENTER",
         entry: {
           kind: "spend",
-          dieId: die.dieId,
+          dieId: spentDie!.dieId,
           rolled: "strike",
           effective: "strike",
           action: { type: "strike", targetId: state.units[0]!.id },
@@ -227,7 +289,21 @@ describe("Main et conservation", () => {
       },
       TYPES,
     ).state;
-    expect(attempted.pendingActions).toHaveLength(0);
+
+    const after = reduce(state, { type: "VALIDATE" }, TYPES).state;
+    const ids = after.hand.map((d) => d.dieId);
+    expect(ids).toContain(keptA!.dieId);
+    expect(ids).toContain(keptB!.dieId);
+    expect(after.discard.map((d) => d.id)).toEqual([spentDie!.dieId]);
+    expect(after.hand).toHaveLength(RULES.handSize);
+  });
+
+  it("ne relance rien quand rien n'est dépensé", () => {
+    const state = setup({ id: "t", units: [{ typeId: "dummy", cell: cell(1, 1) }] });
+    const before = state.hand.map((d) => d.dieId);
+    const after = reduce(state, { type: "VALIDATE" }, TYPES).state;
+    expect(after.hand.map((d) => d.dieId)).toEqual(before);
+    expect(after.discard).toHaveLength(0);
   });
 });
 

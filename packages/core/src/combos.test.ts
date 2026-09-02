@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectCombos } from "./combos.ts";
+import { comboBonusByFace, detectCombos } from "./combos.ts";
 
 describe("contrat de combo (A20)", () => {
   it("détecte une Paire sur deux faces identiques", () => {
@@ -43,5 +43,29 @@ describe("contrat de combo (A20)", () => {
   it("ne détecte rien sur une séquence vide ou d'un seul dé", () => {
     expect(detectCombos([])).toEqual([]);
     expect(detectCombos(["strike"])).toEqual([]);
+  });
+});
+
+describe("bonus intrinsèque du combo", () => {
+  it("ne donne rien pour une dépense isolée", () => {
+    expect(comboBonusByFace(["strike"]).get("strike")).toBe(0);
+  });
+
+  it("donne +1 par dépense à partir de deux faces identiques", () => {
+    expect(comboBonusByFace(["strike", "strike"]).get("strike")).toBe(1);
+  });
+
+  it("donne +2 par dépense à partir de trois", () => {
+    expect(comboBonusByFace(["strike", "strike", "strike"]).get("strike")).toBe(2);
+  });
+
+  it("compte chaque face séparément", () => {
+    const bonus = comboBonusByFace(["strike", "strike", "guard"]);
+    expect(bonus.get("strike")).toBe(1);
+    expect(bonus.get("guard")).toBe(0);
+  });
+
+  it("n'exige pas la consécutivité, contrairement à Écho", () => {
+    expect(comboBonusByFace(["strike", "guard", "strike"]).get("strike")).toBe(1);
   });
 });

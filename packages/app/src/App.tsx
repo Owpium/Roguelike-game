@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DIR_VECTOR,
   cellKey,
+  comboBonusByFace,
   legalEntries,
   project,
   reduce,
@@ -12,8 +13,16 @@ import {
   type GameEvent,
   type LegalEntry,
 } from "@rl/core";
-import { Board, type BoardHandle } from "./Board.tsx";
-import { ENCOUNTERS, ENCOUNTER_LABELS, RELICS, TYPES, newCombat } from "./setup.ts";
+import { Board, type BoardHandle, type TargetKind } from "./Board.tsx";
+import {
+  DIFFICULTIES,
+  ENCOUNTERS,
+  ENCOUNTER_LABELS,
+  RELICS,
+  newCombat,
+  typesFor,
+  type DifficultyId,
+} from "./setup.ts";
 import { describe, faceLabel, intentLabel } from "./labels.ts";
 
 /** Case cible d'une entrée légale — c'est elle qui sert de zone de dépôt. */
@@ -52,7 +61,12 @@ export function App(): JSX.Element {
   const [encounterId, setEncounterId] = useState(ENCOUNTERS[0]!.id);
   const [relics, setRelics] = useState<string[]>(RELICS.map((r) => r.id));
   const [seed, setSeed] = useState(1);
-  const [combat, setCombat] = useState<CombatState>(() => newCombat(encounterId, relics, seed));
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [difficulty, setDifficulty] = useState<DifficultyId>("normal");
+  const TYPES = useMemo(() => typesFor(difficulty), [difficulty]);
+  const [combat, setCombat] = useState<CombatState>(() =>
+    newCombat(encounterId, relics, seed, "normal"),
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<Cell | null>(null);
   const [log, setLog] = useState<GameEvent[]>([]);
@@ -70,33 +84,54 @@ export function App(): JSX.Element {
 
   /** Entrées disponibles pour le dé sélectionné, indexées par case de dépôt. */
   const dropTargets = useMemo(() => {
-    const map = new Map<string, LegalEntry>();
+    const map = new Map<string, { entry: LegalEntry; kind: TargetKind }>();
     if (!selected) return map;
     for (const entry of entries) {
       if (entry.action.kind !== "spend" || entry.action.dieId !== selected) continue;
       const cell = entryCell(view, entry);
       // Une case ne porte qu'une entrée : les cibles d'une Frappe, d'une Garde, d'un Élan et
       // d'une dépense de secours sont des cases distinctes tant qu'aucun Éclat n'est en Main.
-      if (cell && !map.has(cellKey(cell))) map.set(cellKey(cell), entry);
+      if (cell && !map.has(cellKey(cell))) {
+        map.set(cellKey(cell), {
+          entry,
+          kind: entry.action.action.type === "step" ? "move" : "action",
+        });
+      }
     }
     return map;
   }, [entries, selected, view]);
 
+  const targetKinds = useMemo(
+    () => new Map([...dropTargets].map(([k, v]) => [k, v.kind] as const)),
+    [dropTargets],
+  );
+
+  /** Le combo en cours de constitution, calculé sur les dépenses déjà posées. */
+  const comboPreview = useMemo(() => {
+    const spends = combat.pendingActions.flatMap((a) => (a.kind === "spend" ? [a] : []));
+    const counts = new Map<string, number>();
+    for (const s of spends) counts.set(s.effective, (counts.get(s.effective) ?? 0) + 1);
+    const bonuses = comboBonusByFace(spends.map((s) => s.effective));
+    return [...counts]
+      .filter(([, n]) => n >= 2)
+      .map(([face, n]) => ({ face, n, bonus: bonuses.get(face as never) ?? 0 }));
+  }, [combat.pendingActions]);
+
   const restart = useCallback(
-    (id: string, chosen: string[], s: number) => {
-      setCombat(newCombat(id, chosen, s));
+    (id: string, chosen: string[], s: number, d: DifficultyId = difficulty) => {
+      setCombat(newCombat(id, chosen, s, d));
       setSelected(null);
       setLog([]);
       setFloaters([]);
     },
-    [],
+    [difficulty],
   );
 
   const commit = useCallback(
     (cell: Cell) => {
-      const entry = dropTargets.get(cellKey(cell));
-      if (!entry) return;
-      setCombat((c) => reduce(c, { type: "ENTER", entry: entry.action }, TYPES).state);
+      const found = dropTargets.get(cellKey(cell));
+      if (!found) return;
+      setCombat((c) => reduce(c, { type: "ENTER", entry: found.entry.action }, TYPES).state);
       setSelected(null);
       setHovered(null);
     },
@@ -133,7 +168,7 @@ export function App(): JSX.Element {
   }, [combat, view]);
 
   const over = combat.phase !== "choice";
-  const kept = combat.hand.filter((d) => d.kept).length;
+  const carried = combat.hand.filter((d) => !spent.has(d.dieId)).length;
 
   return (
     <div className="app">
@@ -152,23 +187,23 @@ export function App(): JSX.Element {
               </option>
             ))}
           </select>
-          {RELICS.map((r) => (
-            <button
-              key={r.id}
-              className="mini relic"
-              data-on={relics.includes(r.id)}
-              title={r.text}
-              onClick={() => {
-                const next = relics.includes(r.id)
-                  ? relics.filter((x) => x !== r.id)
-                  : [...relics, r.id];
-                setRelics(next);
-                restart(encounterId, next, seed);
-              }}
-            >
-              {r.name}
-            </button>
-          ))}
+          <select
+            value={difficulty}
+            onChange={(e) => {
+              const d = e.target.value as DifficultyId;
+              setDifficulty(d);
+              restart(encounterId, relics, seed, d);
+            }}
+          >
+            {DIFFICULTIES.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <button className="mini" onClick={() => setPanelOpen((v) => !v)}>
+            Reliques · {relics.length}/{RELICS.length}
+          </button>
           <button
             className="mini"
             onClick={() => {
@@ -180,6 +215,36 @@ export function App(): JSX.Element {
             Rejouer
           </button>
         </div>
+
+        {panelOpen && (
+          <div className="relics">
+            {RELICS.map((r) => {
+              const on = relics.includes(r.id);
+              return (
+                <button
+                  key={r.id}
+                  className="relic-row"
+                  data-on={on}
+                  onClick={() => {
+                    const next = on ? relics.filter((x) => x !== r.id) : [...relics, r.id];
+                    setRelics(next);
+                    restart(encounterId, next, seed);
+                  }}
+                >
+                  <span className="mark">{on ? "●" : "○"}</span>
+                  <span className="body">
+                    <b>{r.name}</b>
+                    <i>{r.text}</i>
+                  </span>
+                </button>
+              );
+            })}
+            <p className="hint-line">
+              Changer une relique relance le combat. Une relique s'accroche à un combo : elle
+              ajoute son effet par-dessus le bonus de dégâts que le combo donne déjà.
+            </p>
+          </div>
+        )}
 
         <div className="hud-row">
           <span className="hp">
@@ -204,7 +269,7 @@ export function App(): JSX.Element {
       </div>
 
       <div style={{ position: "relative", minHeight: 0 }}>
-        <Board ref={board} view={view} threat={threat} targets={new Set(dropTargets.keys())} hovered={hovered} onPick={commit} />
+        <Board ref={board} view={view} threat={threat} targets={targetKinds} hovered={hovered} onPick={commit} />
         <div className="floaters">
           {floaters.map((f) => {
             const p = board.current?.centerOf(f.cell);
@@ -219,6 +284,16 @@ export function App(): JSX.Element {
       </div>
 
       <div className="tray">
+        {!over && comboPreview.length > 0 && (
+          <div className="combo">
+            {comboPreview.map((c) => (
+              <span key={c.face}>
+                {faceLabel(c.face)} ×{c.n} <b>+{c.bonus}</b> par dépense
+              </span>
+            ))}
+          </div>
+        )}
+
         {over ? (
           <div className="banner" data-outcome={combat.phase}>
             {combat.phase === "won" ? "Combat gagné" : "Combat perdu"}
@@ -231,10 +306,9 @@ export function App(): JSX.Element {
                 className="die"
                 data-selected={selected === die.dieId}
                 data-spent={spent.has(die.dieId)}
-                data-kept={die.kept}
-                disabled={spent.has(die.dieId) || die.kept}
+                disabled={spent.has(die.dieId)}
                 onPointerDown={(e) => {
-                  if (spent.has(die.dieId) || die.kept) return;
+                  if (spent.has(die.dieId)) return;
                   e.currentTarget.setPointerCapture(e.pointerId);
                   setSelected(die.dieId);
                 }}
@@ -252,24 +326,11 @@ export function App(): JSX.Element {
               >
                 <span className="face">{faceLabel(die.face)}</span>
                 <span className="hint">
-                  {die.kept ? "gardé" : selected === die.dieId ? "choisis une case" : "\u00a0"}
-                </span>
-                <span
-                  className="keep"
-                  data-on={die.kept}
-                  title="Conserver ce dé pour le tour suivant"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    setCombat((c) =>
-                      reduce(
-                        c,
-                        { type: die.kept ? "UNKEEP" : "KEEP", dieId: die.dieId },
-                        TYPES,
-                      ).state,
-                    );
-                  }}
-                >
-                  ⌾
+                  {spent.has(die.dieId)
+                    ? "joué"
+                    : selected === die.dieId
+                      ? "choisis une case"
+                      : "reste en main"}
                 </span>
               </button>
             ))}
@@ -297,7 +358,7 @@ export function App(): JSX.Element {
           ) : (
             <button className="big primary" onClick={validate}>
               Valider
-              {kept > 0 ? ` · ${kept} gardé${kept > 1 ? "s" : ""}` : ""}
+              {carried > 0 ? ` · ${carried} en main` : ""}
             </button>
           )}
         </div>

@@ -133,16 +133,6 @@ export function playTurn(state: CombatState, types: Record<string, EnemyType>): 
     current = reduce(current, { type: "ENTER", entry: best.action }, types).state;
   }
 
-  // Conserver ce qui reste et qui promet : une Frappe gardée prépare une Paire au tour suivant.
-  const spent = new Set(
-    current.pendingActions.flatMap((a) => (a.kind === "spend" ? [a.dieId] : [])),
-  );
-  for (const die of current.hand) {
-    if (spent.has(die.dieId)) continue;
-    if (die.face !== "strike" && die.face !== "spark") continue;
-    current = reduce(current, { type: "KEEP", dieId: die.dieId }, types).state;
-  }
-
   const attackers = current.units
     .filter((u) => u.intent?.kind === "attack" || u.intent?.kind === "charge")
     .map((u) => u.id);

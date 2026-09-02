@@ -18,8 +18,6 @@ export type AttackShape = "single" | "lunge" | "line3";
 export interface RuleSet {
   /** Taille de la Main (D11). */
   handSize: number;
-  /** Dés conservables d'un tour à l'autre (D12) — premier curseur du système. */
-  keepCap: number;
   /**
    * Pas gratuits par tour (D18). À 0, tout déplacement se paie en dés via la dépense de
    * secours, qui suffit seule à garantir qu'aucun tirage ne bloque le joueur.
@@ -52,7 +50,6 @@ export interface RuleSet {
 
 export const RULES: RuleSet = {
   handSize: 3,
-  keepCap: 2,
   // D44 : le pas gratuit est supprimé. Tout déplacement se paie — dépense de secours ou Élan.
   freeStepsPerTurn: 0,
   attackShapeOverride: null,

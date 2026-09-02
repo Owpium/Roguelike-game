@@ -15,11 +15,18 @@ export interface BoardHandle {
   centerOf(cell: Cell): { x: number; y: number } | null;
 }
 
+export type TargetKind = "action" | "move";
+
 interface Props {
   /** L'état PROJETÉ : la Main déjà posée, appliquée. C'est ce que le joueur doit voir. */
   view: CombatState;
   threat: Map<string, number>;
-  targets: Set<string>;
+  /**
+   * Cases où le dé sélectionné peut être déposé, et ce qu'il y ferait. Une action et un
+   * déplacement ne se dessinent pas pareil : les confondre a fait croire qu'une Garde ciblait
+   * les cases voisines, alors que c'était la dépense de secours.
+   */
+  targets: Map<string, TargetKind>;
   hovered: Cell | null;
   onPick(cell: Cell): void;
 }
@@ -29,6 +36,7 @@ const COLORS = {
   cellLine: "#263137",
   threat: "#c4553c",
   target: "#d3a055",
+  move: "#6f8794",
   player: "#d3a055",
   shield: "#6f8794",
   enemy: "#8b5b52",
@@ -122,7 +130,7 @@ function draw(
   cell: number,
   view: CombatState,
   threat: Map<string, number>,
-  targets: Set<string>,
+  targets: Map<string, TargetKind>,
   hovered: Cell | null,
 ): void {
   const w = cell * GRID_W;
@@ -157,13 +165,29 @@ function draw(
         ctx.stroke();
       }
 
-      if (targets.has(cellKey(c))) {
-        ctx.strokeStyle = COLORS.target;
-        ctx.lineWidth = hovered && eq(hovered, c) ? 4 : 2.5;
-        ctx.setLineDash(hovered && eq(hovered, c) ? [] : [5, 4]);
-        roundRect(ctx, p.x + 4, p.y + 4, cell - 8, cell - 8, 5);
-        ctx.stroke();
-        ctx.setLineDash([]);
+      const kind = targets.get(cellKey(c));
+      if (kind) {
+        const focused = hovered !== null && eq(hovered, c);
+        if (kind === "action") {
+          ctx.strokeStyle = COLORS.target;
+          ctx.lineWidth = focused ? 4 : 2.5;
+          ctx.setLineDash([]);
+          roundRect(ctx, p.x + 4, p.y + 4, cell - 8, cell - 8, 5);
+          ctx.stroke();
+        } else {
+          // Déplacement : un liseré discret et un point au centre, jamais le cadre plein de
+          // l'action. On doit pouvoir dire d'un coup d'œil « là je frappe, là je marche ».
+          ctx.strokeStyle = COLORS.move;
+          ctx.lineWidth = focused ? 3 : 1.5;
+          ctx.setLineDash([4, 4]);
+          roundRect(ctx, p.x + 6, p.y + 6, cell - 12, cell - 12, 5);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.arc(p.x + cell / 2, p.y + cell / 2, focused ? 6 : 4, 0, Math.PI * 2);
+          ctx.fillStyle = COLORS.move;
+          ctx.fill();
+        }
       }
     }
   }

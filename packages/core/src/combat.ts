@@ -9,7 +9,7 @@ import {
 } from "./geometry.ts";
 import { applyDamage, assertOccupancy, findUnit, isFree, removeDying, push, unitAt } from "./board.ts";
 import { computeIntent, hasClearLine } from "./intents.ts";
-import { detectCombos } from "./combos.ts";
+import { comboBonusByFace, detectCombos } from "./combos.ts";
 import { applyGateRelics } from "./relics-gate.ts";
 import { RULES, type RuleSet } from "./rules.ts";
 import { nextInt, type RngState } from "./rng.ts";
@@ -131,7 +131,6 @@ function drawAndRoll(state: CombatState, log: GameEvent[]): void {
   const rolled: HandDie[] = drawn.map((die) => ({
     dieId: die.id,
     face: die.faces[nextInt(state.rng, die.faces.length)]!,
-    kept: false,
   }));
 
   state.hand = [...state.hand, ...rolled];
@@ -158,10 +157,6 @@ export function freeStepAvailable(state: CombatState): boolean {
   return freeStepsTaken(state) < state.rules.freeStepsPerTurn;
 }
 
-export function keptCount(state: CombatState): number {
-  return state.hand.filter((d) => d.kept).length;
-}
-
 export function spentDieIds(state: CombatState): Set<string> {
   return new Set(
     state.pendingActions.flatMap((a) => (a.kind === "spend" ? [a.dieId] : [])),
@@ -178,8 +173,11 @@ export function project(state: CombatState): CombatState {
   const actions = projected.pendingActions;
   projected.pendingActions = [];
   const sink: GameEvent[] = [];
+  const bonuses = comboBonusByFace(
+    actions.flatMap((a) => (a.kind === "spend" ? [a.effective] : [])),
+  );
   for (const action of actions) {
-    applyEntry(projected, action, sink);
+    applyEntry(projected, action, bonuses, sink);
     removeDying(projected, sink);
   }
   return projected;
@@ -206,7 +204,7 @@ export function legalEntries(state: CombatState, projected?: CombatState): Legal
 
   const spent = spentDieIds(state);
   for (const die of state.hand) {
-    if (spent.has(die.dieId) || die.kept) continue;
+    if (spent.has(die.dieId)) continue;
     const faces: Exclude<Face, "spark">[] =
       die.face === "spark" ? ["strike", "guard", "surge"] : [die.face];
 
@@ -278,7 +276,13 @@ function moveOne(state: CombatState, dir: Dir, cause: string, log: GameEvent[]):
  * est retiré immédiatement s'il meurt, avant l'évaluation de la case suivante. La distance
  * peut se raccourcir, jamais s'allonger.
  */
-function resolveSurge(state: CombatState, dir: Dir, distance: number, log: GameEvent[]): void {
+function resolveSurge(
+  state: CombatState,
+  dir: Dir,
+  distance: number,
+  bonus: number,
+  log: GameEvent[],
+): void {
   const vector = DIR_VECTOR[dir];
   const from = state.player.cell;
   const path: Cell[] = [];
@@ -291,7 +295,7 @@ function resolveSurge(state: CombatState, dir: Dir, distance: number, log: GameE
   for (const c of path) {
     const victim = unitAt(state, c);
     if (victim) {
-      applyDamage(state, victim.id, state.rules.surgeTrampleDamage, "player", log);
+      applyDamage(state, victim.id, state.rules.surgeTrampleDamage + bonus, "player", log);
       removeDying(state, log);
     }
   }
@@ -306,22 +310,29 @@ function resolveSurge(state: CombatState, dir: Dir, distance: number, log: GameE
   }
 }
 
-function applySpend(state: CombatState, action: SpendAction, log: GameEvent[]): void {
+function applySpend(
+  state: CombatState,
+  action: SpendAction,
+  bonus: number,
+  log: GameEvent[],
+): void {
   switch (action.type) {
     case "strike": {
       const target = findUnit(state, action.targetId);
       // § 10.5 : une dépense dont la cible a disparu fait long feu. Le dé est bel et bien
       // dépensé et compte pour les combos — surtuer ne doit pas casser un combo.
       if (!target) return;
-      applyDamage(state, target.id, state.rules.strikeDamage, "player", log);
+      applyDamage(state, target.id, state.rules.strikeDamage + bonus, "player", log);
       return;
     }
-    case "guard":
-      state.player.shield += state.rules.guardShield;
-      log.push({ t: "SHIELD_GAINED", unitId: "player", amount: state.rules.guardShield });
+    case "guard": {
+      const amount = state.rules.guardShield + bonus;
+      state.player.shield += amount;
+      log.push({ t: "SHIELD_GAINED", unitId: "player", amount });
       return;
+    }
     case "surge":
-      resolveSurge(state, action.dir, action.distance, log);
+      resolveSurge(state, action.dir, action.distance, bonus, log);
       return;
     case "step":
       moveOne(state, action.dir, "spend_step", log);
@@ -329,13 +340,20 @@ function applySpend(state: CombatState, action: SpendAction, log: GameEvent[]): 
   }
 }
 
-function applyEntry(state: CombatState, entry: PendingAction, log: GameEvent[]): void {
+function applyEntry(
+  state: CombatState,
+  entry: PendingAction,
+  bonuses: Map<string, number>,
+  log: GameEvent[],
+): void {
   if (entry.kind === "free_step") {
     moveOne(state, entry.dir, "free_step", log);
     return;
   }
   log.push({ t: "DIE_SPENT", dieId: entry.dieId, face: entry.effective, actionKind: entry.action.type });
-  applySpend(state, entry.action, log);
+  // Un déplacement de secours ne profite pas du bonus : il ne fait rien qu'on puisse amplifier.
+  const bonus = entry.action.type === "step" ? 0 : (bonuses.get(entry.effective) ?? 0);
+  applySpend(state, entry.action, bonus, log);
 }
 
 function resolveEnemy(state: CombatState, unit: Unit, log: GameEvent[]): void {
@@ -390,8 +408,6 @@ function directionAway(source: Cell, target: Cell): Dir | null {
 
 export type CombatAction =
   | { type: "ENTER"; entry: PendingAction }
-  | { type: "KEEP"; dieId: string }
-  | { type: "UNKEEP"; dieId: string }
   | { type: "UNDO" }
   | { type: "UNDO_ALL" }
   | { type: "VALIDATE" };
@@ -414,27 +430,13 @@ export function reduce(
       const entry = action.entry;
       if (entry.kind === "spend") {
         const die = state.hand.find((d) => d.dieId === entry.dieId);
-        if (!die || die.kept || spentDieIds(state).has(entry.dieId)) {
+        if (!die || spentDieIds(state).has(entry.dieId)) {
           return { state: previous, log: [] };
         }
       } else if (!freeStepAvailable(state)) {
         return { state: previous, log: [] };
       }
       state.pendingActions.push(entry);
-      return { state, log: [] };
-    }
-
-    case "KEEP": {
-      if (keptCount(state) >= state.rules.keepCap) return { state: previous, log: [] };
-      if (spentDieIds(state).has(action.dieId)) return { state: previous, log: [] };
-      const die = state.hand.find((d) => d.dieId === action.dieId);
-      if (die) die.kept = true;
-      return { state, log: [] };
-    }
-
-    case "UNKEEP": {
-      const die = state.hand.find((d) => d.dieId === action.dieId);
-      if (die) die.kept = false;
       return { state, log: [] };
     }
 
@@ -458,16 +460,20 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
   const entries = state.pendingActions;
   state.pendingActions = [];
 
+  // Le bonus de combo est connu avant la résolution : il ne dépend que des dépenses posées.
+  const sequence = entries.flatMap((e) => (e.kind === "spend" ? [e.effective] : []));
+  const bonuses = comboBonusByFace(sequence);
+
   // 1. Les entrées du joueur, dans l'ordre choisi.
   for (const entry of entries) {
-    applyEntry(state, entry, log);
+    applyEntry(state, entry, bonuses, log);
     removeDying(state, log);
     assertOccupancy(state);
     if (state.player.hp <= 0) return lose(state, log);
   }
 
-  // 2. Les combos, dans l'ordre canonique.
-  const sequence = entries.flatMap((e) => (e.kind === "spend" ? [e.effective] : []));
+  // 2. Les combos, dans l'ordre canonique. Leur bonus de dégâts a déjà été appliqué ci-dessus ;
+  //    ce qui se résout ici, ce sont les crochets de relique.
   const combos = detectCombos(sequence);
   for (const combo of combos) log.push({ t: "COMBO_DETECTED", combo });
   for (const combo of combos) {
@@ -483,7 +489,7 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
 
   // 3. Victoire — testée après la phase du joueur, combos inclus (§ 13.1).
   if (state.units.length === 0) {
-    endTurnBookkeeping(state, log, types, { skipIntents: true });
+    endTurnBookkeeping(state, entries, log, types, { skipIntents: true });
     log.push({ t: "COMBAT_WON" });
     state.phase = "won";
     state.lastTurnLog = log;
@@ -501,7 +507,7 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
   log.push({ t: "ENEMY_PHASE_END" });
 
   // 5. Fin de tour.
-  endTurnBookkeeping(state, log, types, { skipIntents: false });
+  endTurnBookkeeping(state, entries, log, types, { skipIntents: false });
 
   if (state.turn >= state.rules.maxTurns) return lose(state, log);
 
@@ -512,20 +518,19 @@ function validate(state: CombatState, types: Record<string, EnemyType>): ReduceR
 
 function endTurnBookkeeping(
   state: CombatState,
+  entries: PendingAction[],
   log: GameEvent[],
   types: Record<string, EnemyType>,
   options: { skipIntents: boolean },
 ): void {
   state.player.shield = 0;
 
-  const keptIds = new Set(state.hand.filter((d) => d.kept).map((d) => d.dieId));
-  const byId = new Map<string, HandDie>(state.hand.map((d) => [d.dieId, d]));
-
-  for (const die of state.hand) {
-    if (keptIds.has(die.dieId)) continue;
-    state.discard.push(dieRecord(state, die.dieId));
-  }
-  state.hand = [...keptIds].map((id) => byId.get(id)!);
+  // D49 — seuls les dés DÉPENSÉS partent à la défausse et seront relancés. Les autres restent
+  // en Main avec leur face : garder une Frappe pour en avoir deux au tour suivant ne demande
+  // aucun geste, c'est la conséquence naturelle de ne pas l'avoir jouée.
+  const spent = new Set(entries.flatMap((e) => (e.kind === "spend" ? [e.dieId] : [])));
+  for (const dieId of spent) state.discard.push(dieRecord(state, dieId));
+  state.hand = state.hand.filter((d) => !spent.has(d.dieId));
 
   log.push({ t: "TURN_END" });
   if (!options.skipIntents) {
